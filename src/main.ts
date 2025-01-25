@@ -1,4 +1,4 @@
-import { addImage, addText, initContext, initDrawobjects, initPrograms, loadFontData } from "./context.js";
+import { addImage, addText, initContext, initDrawobjects, initPrograms, initWindow, loadFontData } from "./context.js";
 import Device from "./device/Device.js";
 import Game from "./shooter01/Game.js";
 export async function mainH5() {
@@ -7,6 +7,9 @@ export async function mainH5() {
     new EventSource('/esbuild').addEventListener('change', (e) => {
         location.reload()
     });
+    device.onResize = () => {
+        initWindow(0,0,"");
+    }
     return device;
 }
 export async function mainMinigame() {
@@ -45,7 +48,6 @@ export async function start(device: Device) {
         requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
-    console.log(1)
 }
 
 

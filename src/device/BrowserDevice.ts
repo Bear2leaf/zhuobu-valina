@@ -1,4 +1,23 @@
 import Device from "./Device";
+function getWindowInfo(): WechatMinigame.WindowInfo {
+    return {
+        windowWidth: window.innerWidth,
+        windowHeight: window.innerHeight,
+        pixelRatio: window.devicePixelRatio,
+        statusBarHeight: 0,
+        screenWidth: window.innerWidth,
+        screenHeight: window.innerHeight,
+        safeArea: {
+            bottom: window.innerHeight,
+            height: window.innerHeight,
+            left: 0,
+            right: window.innerWidth,
+            top: 0,
+            width: window.innerWidth
+        },
+        screenTop: 0
+    }
+}
 export default class BrowserDevice implements Device {
     private readonly windowInfo: WechatMinigame.WindowInfo;
     private readonly canvasGL: HTMLCanvasElement
@@ -7,26 +26,17 @@ export default class BrowserDevice implements Device {
         document.body.appendChild(this.canvasGL);
         this.canvasGL.width = window.innerWidth * window.devicePixelRatio;
         this.canvasGL.height = window.innerHeight * window.devicePixelRatio;
-        this.windowInfo = {
-            windowWidth: window.innerWidth,
-            windowHeight: window.innerHeight,
-            pixelRatio: window.devicePixelRatio,
-            statusBarHeight: 0,
-            screenWidth: window.innerWidth,
-            screenHeight: window.innerHeight,
-            safeArea: {
-                bottom: window.innerHeight,
-                height: window.innerHeight,
-                left: 0,
-                right: window.innerWidth,
-                top: 0,
-                width: window.innerWidth
-            },
-            screenTop: 0
-        };
+        this.windowInfo = getWindowInfo();
         window.addEventListener("keydown", (e) => this.onKeyDown(e.keyCode));
         window.addEventListener("keyup", (e) => this.onKeyUp(e.keyCode));
+        window.addEventListener("resize", () => {
+            Object.assign(this.windowInfo, getWindowInfo());
+            this.onResize()
+        });
     }
+    onResize: () => void = () => {
+        throw new Error("Method not implemented.");
+    };
     onKeyUp = (key: number) => {
         throw new Error("Method not implemented.");
     }
@@ -74,6 +84,7 @@ declare const window: {
     devicePixelRatio: number;
     addEventListener(type: "keydown", listener: (e: { keyCode: number }) => void): void;
     addEventListener(type: "keyup", listener: (e: { keyCode: number }) => void): void;
+    addEventListener(type: "resize", listener: () => void): void;
 }
 declare const performance: {
     now: () => number;

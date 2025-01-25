@@ -31,6 +31,8 @@ export default class BrowserDevice implements Device {
         window.addEventListener("keyup", (e) => this.onKeyUp(e.keyCode));
         window.addEventListener("resize", () => {
             Object.assign(this.windowInfo, getWindowInfo());
+            this.canvasGL.width = this.windowInfo.windowWidth * this.windowInfo.pixelRatio;
+            this.canvasGL.height = this.windowInfo.windowHeight * this.windowInfo.pixelRatio;
             this.onResize()
         });
     }

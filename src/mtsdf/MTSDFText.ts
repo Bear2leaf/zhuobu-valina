@@ -12,6 +12,12 @@ type TextOptions = {
 };
 type Line = { width: number; glyphs: [Glyph, number][]; }
 type Buffers = { id: Float32Array, position: Float32Array, uv: Float32Array, index: Uint16Array }
+const buffers = {
+    position: new Float32Array(100 * 4 * 3),
+    uv: new Float32Array(100 * 4 * 2),
+    id: new Float32Array(100 * 4),
+    index: new Uint16Array(100 * 6),
+};
 export class MTSDFText {
     private _buffers?: Buffers;
     private _numLines?: number;
@@ -67,7 +73,7 @@ export class MTSDFText {
     }: TextOptions) {
         this.size = size;
         const _this = this;
-        let glyphs: Record<string, Glyph>, buffers: Buffers;
+        let glyphs: Record<string, Glyph>;
         let scale: number;
 
         this.distanceRange = [font.atlas.distanceRange / font.atlas.width, font.atlas.distanceRange / font.atlas.height];
@@ -92,14 +98,12 @@ export class MTSDFText {
             // let chars = text.replace(/[ \n]/g, '');
             let chars = text;
             let numChars = chars.length;
-
-            // Create output buffers
-            buffers = {
-                position: new Float32Array(numChars * 4 * 3),
-                uv: new Float32Array(numChars * 4 * 2),
-                id: new Float32Array(numChars * 4),
-                index: new Uint16Array(numChars * 6),
-            };
+            if (numChars > buffers.position.length / 3 / 4) {
+                throw new Error('Text too long');
+            }
+            Object.keys(buffers).forEach((key) => {
+                buffers[key as keyof Buffers].fill(0);
+            })
 
             // Set values for buffers that don't require calculation
             for (let i = 0; i < numChars; i++) {

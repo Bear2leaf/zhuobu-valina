@@ -57,9 +57,11 @@ const context = {
     keyboard: new Set<number>(),
     textDrawobject: null! as Drawobject,
     spriteDrawobject: null! as Drawobject,
+    lineDrawobject: null! as Drawobject,
     fontData: null! as MTSDFFontData,
     textProgram: null! as WebGLProgram,
     spriteProgram: null! as WebGLProgram,
+    lineProgram: null! as WebGLProgram,
     textTexture: null! as Texture,
 }
 
@@ -79,18 +81,18 @@ function createDrawobject(program: WebGLProgram, textures: readonly Texture[]): 
     return { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, program, textures };
 }
 export async function addImage(name: string, device: Device) {
-     images.set(name, await device.loadImage(`resources/${name}.png`));
+    images.set(name, await device.loadImage(`resources/${name}.png`));
 }
 export async function addText(name: string, device: Device) {
     texts.set(name, await device.loadText(`resources/${name}`));
 }
-function createTexture(img: HTMLImageElement, linear: boolean = false): Texture {
+function createTexture(img: HTMLImageElement): Texture {
     const { gl } = context;
     const texture = gl.createTexture();
     if (!texture) throw new Error("createTexture failed");
     gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, linear ? gl.LINEAR : gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, linear ? gl.LINEAR : gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
     gl.bindTexture(gl.TEXTURE_2D, null);
     return { tex: texture, width: img.width, height: img.height };
@@ -123,18 +125,39 @@ function createShaderProgram(vert: string, frag: string) {
     return program;
 }
 
-export function blit(texture: Texture | null, x: number, y: number) {
+export function blit(texture: Texture | null, x: number, y: number, color = WHITE) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x, y, width: texture.width, height: texture.height }, RAYWHITE);
+    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x, y, width: texture.width, height: texture.height }, color);
 }
-
+export function blitRectRect(texture: Texture | null, src: Rectangle, dest: Rectangle) {
+    if (!texture) {
+        throw new Error("Texture is not loaded");
+    }
+    drawTexture(texture, src, dest, WHITE);
+}
 export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: number) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, RAYWHITE);
+    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, WHITE);
+}
+
+export enum BlendMode {
+    None,
+    Additive,
+}
+export function setBlendMode(mode: BlendMode) {
+    const { gl } = context;
+    switch (mode) {
+        case BlendMode.None:
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+            break;
+        case BlendMode.Additive:
+            gl.blendFunc(gl.ONE, gl.ONE);
+            break;
+    }
 }
 
 export function initPrograms() {
@@ -158,30 +181,44 @@ export function initPrograms() {
         const program = createShaderProgram(vertText, fragText);
         context.spriteProgram = program;
     }
+    {
+        const vert = "glsl/line.vert.sk";
+        const frag = "glsl/line.frag.sk";
+        const vertText = texts.get(vert);
+        if (!vertText) throw new Error("vertText not loaded");
+        const fragText = texts.get(frag);
+        if (!fragText) throw new Error("fragText not loaded");
+        const program = createShaderProgram(vertText, fragText);
+        context.lineProgram = program;
+    }
 }
 export function initDrawobjects() {
 
     context.textDrawobject = createDrawobject(context.textProgram, [context.textTexture]);
     context.spriteDrawobject = createDrawobject(context.spriteProgram, []);
+    context.lineDrawobject = createDrawobject(context.lineProgram, []);
 }
 export function initContext(device: Device) {
     device.onKeyDown = (key) => context.keyboard.add(key);
     device.onKeyUp = (key) => context.keyboard.delete(key);
     context.device = device;
     context.gl = device.getCanvasGL().getContext('webgl2', {});
-    const image =  images.get(`font/NotoSansSC-Regular`);
+    const image = images.get(`font/NotoSansSC-Regular`);
     if (!image) throw new Error("image not found");
-    context.textTexture = createTexture(image, true);
-    const fontDataText =  texts.get(`font/NotoSansSC-Regular.json`);
+    context.textTexture = createTexture(image);
+    const fontDataText = texts.get(`font/NotoSansSC-Regular.json`);
     if (!fontDataText) throw new Error("fontDataText not loaded");
     context.fontData = Convert.toMTSDFFontData(fontDataText);
 
 }
-
+export function rand() {
+    return Math.floor(Math.random() * (-1 >>> 0));
+}
 export function initWindow(width: number, height: number, title: string) {
     const { gl, device } = context;
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
     gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
 
 }
@@ -191,10 +228,14 @@ export function beginDrawing() {
     context.frameTime = (now - context.time) / 1000;
     context.fps = Math.floor(1 / context.frameTime);
     context.time = now;
-
+    lineCount = 0;
+    linePositions.fill(0);
+    lineColors.fill(0);
+    lineIndices.fill(0);
 
 }
 export function endDrawing() {
+    flushLines();
 }
 
 export function clearBackground(color: vec4) {
@@ -203,7 +244,7 @@ export function clearBackground(color: vec4) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 }
 export function drawFPS(x: number, y: number) {
-    drawText(`FPS: ${context.fps}`, x, y, 20, BLUE);
+    drawText(`FPS: ${context.fps}`, x, y, 20, WHITE);
 }
 let text: MTSDFText = null!
 export function drawText(content: string, x: number, y: number, size: number, color: vec4) {
@@ -233,7 +274,7 @@ export function drawText(content: string, x: number, y: number, size: number, co
         gl.bindTexture(gl.TEXTURE_2D, textures[i].tex);
         gl.uniform1i(cacheUniformLocation(gl, program, `u_texture${i}`), i);
     }
-    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), color);
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [x, y, 0]));
     gl.uniform2fv(cacheUniformLocation(gl, program, "u_unitRange"), [textures[0].width, textures[0].height]);
@@ -257,6 +298,10 @@ const indices = new Uint16Array([
     0, 1, 2,
     0, 2, 3
 ]);
+const linePositions = new Float32Array(3 * 4 * 500);
+const lineColors = new Float32Array(4 * 4 * 500);
+const lineIndices = new Uint16Array(6 * 500);
+let lineCount = 0;
 export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, color: vec4) {
 
     const { gl, spriteDrawobject, device } = context;
@@ -295,12 +340,82 @@ export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, c
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture.tex);
     gl.uniform1i(cacheUniformLocation(gl, program, `u_texture0`), 0);
-    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), color);
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [0, 0, 0]));
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
+}
+export function drawLine(x1: number, y1: number, x2: number, y2: number, color: vec4) {
+    const i = lineCount * 4 * 3;
+    linePositions[i + 0] = x1;
+    linePositions[i + 1] = y1;
+    linePositions[i + 2] = 0;
+    linePositions[i + 3] = x2;
+    linePositions[i + 4] = y2;
+    linePositions[i + 5] = 0;
+    linePositions[i + 6] = x2;
+    linePositions[i + 7] = y2 + 2;
+    linePositions[i + 8] = 0;
+    linePositions[i + 9] = x1;
+    linePositions[i + 10] = y1 + 2;
+    linePositions[i + 11] = 0;
+    const j = lineCount * 4 * 4;
+    lineColors[j + 0] = color[0] / 255;
+    lineColors[j + 1] = color[1] / 255;
+    lineColors[j + 2] = color[2] / 255;
+    lineColors[j + 3] = color[3] / 255;
+    lineColors[j + 4] = color[0] / 255;
+    lineColors[j + 5] = color[1] / 255;
+    lineColors[j + 6] = color[2] / 255;
+    lineColors[j + 7] = color[3] / 255;
+    lineColors[j + 8] = color[0] / 255;
+    lineColors[j + 9] = color[1] / 255;
+    lineColors[j + 10] = color[2] / 255;
+    lineColors[j + 11] = color[3] / 255;
+    lineColors[j + 12] = color[0] / 255;
+    lineColors[j + 13] = color[1] / 255;
+    lineColors[j + 14] = color[2] / 255;
+    lineColors[j + 15] = color[3] / 255;
+    const k = lineCount * 6;
+    lineIndices[k + 0] = lineCount * 4 + 0;
+    lineIndices[k + 1] = lineCount * 4 + 1;
+    lineIndices[k + 2] = lineCount * 4 + 2;
+    lineIndices[k + 3] = lineCount * 4 + 0;
+    lineIndices[k + 4] = lineCount * 4 + 2;
+    lineIndices[k + 5] = lineCount * 4 + 3;
+    /**
+     * 0........1
+     * .        .
+     * .        .
+     * 3........2
+     */
+
+    lineCount++;
+
+}
+function flushLines() {
+    const { gl, lineDrawobject } = context;
+    const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = lineDrawobject;
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, linePositions, gl.DYNAMIC_DRAW);
+    const posLoc = cacheAttributeLocation(gl, program, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 4 * 3, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo1);
+    gl.bufferData(gl.ARRAY_BUFFER, lineColors, gl.DYNAMIC_DRAW);
+    const colorLoc = cacheAttributeLocation(gl, program, "a_color");
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 4 * 4, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.DYNAMIC_DRAW);
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), WHITE, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [0, 0, 0]));
+    gl.drawElements(gl.TRIANGLES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
 }
 export function getFPS(): number {
     return context.fps;
@@ -344,5 +459,6 @@ export enum KeyboardKey {
     KEY_RIGHT = 39,
     KEY_UP = 38,
 }
-export const BLUE = vec4.fromValues(0, 0, 1, 1);
-export const RAYWHITE = vec4.fromValues(0.9, 0.9, 0.9, 1);
+export const BLUE = vec4.fromValues(0, 0, 255, 255);
+export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
+export const WHITE = vec4.fromValues(255, 255, 255, 255);

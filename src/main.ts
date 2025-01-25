@@ -1,4 +1,4 @@
-import { addImage, addText, initContext, initDrawobjects, initPrograms, initWindow, loadFontData } from "./context.js";
+import { addImage, addText, initContext, initDrawobjects, initPrograms, initWindow } from "./context.js";
 import Device from "./device/Device.js";
 import Game from "./shooter01/Game.js";
 export async function mainH5() {
@@ -19,22 +19,20 @@ export async function mainMinigame() {
     return device;
 }
 export async function start(device: Device) {
-    addText("resources/font/NotoSansSC-Regular.json", await device.loadText("resources/font/NotoSansSC-Regular.json"));
-    addText("resources/glsl/text.vert.sk", await device.loadText("resources/glsl/text.vert.sk"));
-    addText("resources/glsl/text.frag.sk", await device.loadText("resources/glsl/text.frag.sk"));
-    addText("resources/glsl/sprite.vert.sk", await device.loadText("resources/glsl/sprite.vert.sk"));
-    addText("resources/glsl/sprite.frag.sk", await device.loadText("resources/glsl/sprite.frag.sk"));
-    addImage("resources/font/NotoSansSC-Regular.png", await device.loadImage("resources/font/NotoSansSC-Regular.png"));
-    addImage("resources/image/player.png", await device.loadImage("resources/image/player.png"));
-    addImage("resources/image/playerBullet.png", await device.loadImage("resources/image/playerBullet.png"));
-    addImage("resources/image/alienBullet.png", await device.loadImage("resources/image/alienBullet.png"));
-    addImage("resources/image/enemy.png", await device.loadImage("resources/image/enemy.png"));
+    await addText("font/NotoSansSC-Regular.json", device);
+    await addText("glsl/text.vert.sk", device);
+    await addText("glsl/text.frag.sk", device);
+    await addText("glsl/sprite.vert.sk", device);
+    await addText("glsl/sprite.frag.sk", device);
+    await addImage("font/NotoSansSC-Regular", device);
+    await addImage("image/player", device);
+    await addImage("image/playerBullet", device);
+    await addImage("image/alienBullet", device);
+    await addImage("image/enemy", device);
+    await addImage("image/background", device);
+    await addImage("image/explosion", device);
     initContext(device);
 
-    loadFontData(
-        "resources/font/NotoSansSC-Regular.json",
-        "resources/font/NotoSansSC-Regular.png"
-    );
     initPrograms();
     initDrawobjects();
     const game = new Game();

@@ -1,5 +1,7 @@
 import Device from "./Device";
-function getWindowInfo(): WechatMinigame.WindowInfo {
+function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
     return {
         windowWidth: window.innerWidth,
         windowHeight: window.innerHeight,
@@ -24,15 +26,11 @@ export default class BrowserDevice implements Device {
     constructor() {
         this.canvasGL = document.createElement("canvas");
         document.body.appendChild(this.canvasGL);
-        this.windowInfo = getWindowInfo();
-        this.canvasGL.width = window.innerWidth * window.devicePixelRatio;
-        this.canvasGL.height = window.innerHeight * window.devicePixelRatio;
+        this.windowInfo = getWindowInfo(this.canvasGL);
         window.addEventListener("keydown", (e) => this.onKeyDown(e.keyCode));
         window.addEventListener("keyup", (e) => this.onKeyUp(e.keyCode));
         window.addEventListener("resize", () => {
-            Object.assign(this.windowInfo, getWindowInfo());
-            this.canvasGL.width = this.windowInfo.windowWidth * this.windowInfo.pixelRatio;
-            this.canvasGL.height = this.windowInfo.windowHeight * this.windowInfo.pixelRatio;
+            Object.assign(this.windowInfo, getWindowInfo(this.canvasGL));
             this.onResize()
         });
     }

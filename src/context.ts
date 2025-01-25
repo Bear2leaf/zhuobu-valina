@@ -9,12 +9,12 @@ const _mtsdfTexts: Record<string, MTSDFText> = {};
 function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number): MTSDFText {
     const key = `${content}_${size}`;
     if (_mtsdfTexts[key] === undefined) {
-        _mtsdfTexts[key] = new MTSDFText({font: fontData, text: content, size});
+        _mtsdfTexts[key] = new MTSDFText({ font: fontData, text: content, size });
     }
     return _mtsdfTexts[key];
 }
 function cacheAttributeLocation(gl: WebGL2RenderingContext, program: WebGLProgram, name: string): number {
-    
+
     let attribLocs = _attributeLocs.get(program);
     if (attribLocs === undefined) {
         attribLocs = {};
@@ -78,19 +78,11 @@ function createDrawobject(program: WebGLProgram, textures: readonly Texture[]): 
     if (!vbo1) throw new Error("createBuffer failed");
     return { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, program, textures };
 }
-export function addImage(name: string, img: HTMLImageElement) {
-    images.set(name, img);
+export async function addImage(name: string, device: Device) {
+     images.set(name, await device.loadImage(`resources/${name}.png`));
 }
-export function addText(name: string, text: string) {
-    texts.set(name, text);
-}
-export function loadFontData(font: string, img: string) {
-    const image = images.get(img);
-    if (!image) throw new Error("image not found");
-    context.textTexture = createTexture(image, true);
-    const fontDataText = texts.get(font);
-    if (!fontDataText) throw new Error("fontDataText not loaded");
-    context.fontData = Convert.toMTSDFFontData(fontDataText);
+export async function addText(name: string, device: Device) {
+    texts.set(name, await device.loadText(`resources/${name}`));
 }
 function createTexture(img: HTMLImageElement, linear: boolean = false): Texture {
     const { gl } = context;
@@ -130,10 +122,25 @@ function createShaderProgram(vert: string, frag: string) {
     }
     return program;
 }
+
+export function blit(texture: Texture | null, x: number, y: number) {
+    if (!texture) {
+        throw new Error("Texture is not loaded");
+    }
+    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x, y, width: texture.width, height: texture.height }, RAYWHITE);
+}
+
+export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: number) {
+    if (!texture) {
+        throw new Error("Texture is not loaded");
+    }
+    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, RAYWHITE);
+}
+
 export function initPrograms() {
     {
-        const vert = "resources/glsl/text.vert.sk";
-        const frag = "resources/glsl/text.frag.sk";
+        const vert = "glsl/text.vert.sk";
+        const frag = "glsl/text.frag.sk";
         const vertText = texts.get(vert);
         if (!vertText) throw new Error("vertText not loaded");
         const fragText = texts.get(frag);
@@ -142,8 +149,8 @@ export function initPrograms() {
         context.textProgram = program;
     }
     {
-        const vert = "resources/glsl/sprite.vert.sk";
-        const frag = "resources/glsl/sprite.frag.sk";
+        const vert = "glsl/sprite.vert.sk";
+        const frag = "glsl/sprite.frag.sk";
         const vertText = texts.get(vert);
         if (!vertText) throw new Error("vertText not loaded");
         const fragText = texts.get(frag);
@@ -162,6 +169,12 @@ export function initContext(device: Device) {
     device.onKeyUp = (key) => context.keyboard.delete(key);
     context.device = device;
     context.gl = device.getCanvasGL().getContext('webgl2', {});
+    const image =  images.get(`font/NotoSansSC-Regular`);
+    if (!image) throw new Error("image not found");
+    context.textTexture = createTexture(image, true);
+    const fontDataText =  texts.get(`font/NotoSansSC-Regular.json`);
+    if (!fontDataText) throw new Error("fontDataText not loaded");
+    context.fontData = Convert.toMTSDFFontData(fontDataText);
 
 }
 
@@ -197,7 +210,7 @@ export function drawText(content: string, x: number, y: number, size: number, co
     const { gl, fontData, textDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = textDrawobject;
     let mtsdfText = cacheMTSDFText(content, fontData, size);
-    mtsdfText.update({text: content});
+    mtsdfText.update({ text: content });
     const positions = mtsdfText.buffers.position;
     const texcoords = mtsdfText.buffers.uv;
     const indices = mtsdfText.buffers.index;
@@ -244,14 +257,27 @@ const indices = new Uint16Array([
     0, 1, 2,
     0, 2, 3
 ]);
-export function drawTexture(texture: Texture, x: number, y: number, color: vec4) {
+export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, color: vec4) {
 
     const { gl, spriteDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = spriteDrawobject;
-    positions[3] = texture.width;
-    positions[6] = texture.width;
-    positions[7] = texture.height;
-    positions[10] = texture.height;
+    positions[0] = dest.x;
+    positions[1] = dest.y;
+    positions[3] = dest.x + dest.width;
+    positions[4] = dest.y;
+    positions[6] = dest.x + dest.width;
+    positions[7] = dest.y + dest.height;
+    positions[9] = dest.x;
+    positions[10] = dest.y + dest.height;
+
+    texcoords[0] = src.x / texture.width;
+    texcoords[1] = src.y / texture.height;
+    texcoords[2] = (src.x + src.width) / texture.width;
+    texcoords[3] = src.y / texture.height;
+    texcoords[4] = (src.x + src.width) / texture.width;
+    texcoords[5] = (src.y + src.height) / texture.height;
+    texcoords[6] = src.x / texture.width;
+    texcoords[7] = (src.y + src.height) / texture.height;
     gl.useProgram(program);
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
@@ -271,7 +297,7 @@ export function drawTexture(texture: Texture, x: number, y: number, color: vec4)
     gl.uniform1i(cacheUniformLocation(gl, program, `u_texture0`), 0);
     gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), color);
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [x, y, 0]));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [0, 0, 0]));
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
@@ -300,7 +326,12 @@ export function loadTexture(url: string): Texture {
     if (!img) throw new Error("image not found");
     return createTexture(img);
 }
-
+export type Rectangle = {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
 export type Texture = {
     tex: WebGLTexture;
     width: number;

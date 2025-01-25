@@ -1,4 +1,4 @@
-import { beginDrawing, BLUE, clearBackground, drawFPS, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture } from "../context";
+import { beginDrawing, blit, BLUE, clearBackground, drawFPS, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture } from "../context";
 
 const PLAYER_SPEED = 200;
 const ENEMY_SPEED = 80;
@@ -31,6 +31,8 @@ export default class Game {
     private playerBulletTexture: Texture | null = null;
     private enemyBulletTexture: Texture | null = null;
     private enemyTexture: Texture | null = null;
+    private backgroundTexture: Texture | null = null;
+    private explosionTexture: Texture | null = null;
     private readonly keyboard = new Set<KeyboardKey>();
     private readonly player: Entity = {
         texture: null,
@@ -50,10 +52,12 @@ export default class Game {
     private stageResetTimer = 120;
     init() {
         initWindow(800, 450, "Shooter 01");
-        this.playerTexture = loadTexture("resources/image/player.png");
-        this.playerBulletTexture = loadTexture("resources/image/playerBullet.png");
-        this.enemyBulletTexture = loadTexture("resources/image/alienBullet.png");
-        this.enemyTexture = loadTexture("resources/image/enemy.png");
+        this.playerTexture = loadTexture("image/player");
+        this.playerBulletTexture = loadTexture("image/playerBullet");
+        this.enemyBulletTexture = loadTexture("image/alienBullet");
+        this.enemyTexture = loadTexture("image/enemy");
+        this.backgroundTexture = loadTexture("image/background");
+        this.explosionTexture = loadTexture("image/explosion");
         this.initPlayer();
     }
     private initPlayer() {
@@ -71,12 +75,6 @@ export default class Game {
         this.fighters.add(this.player);
     }
 
-    private blit(texture: Texture | null, x: number, y: number) {
-        if (!texture) {
-            throw new Error("Texture is not loaded");
-        }
-        drawTexture(texture, x, y, RAYWHITE);
-    }
     doInput() {
         this.keyboard.clear();
         if (isKeyDown(KeyboardKey.KEY_UP)) {
@@ -303,10 +301,10 @@ export default class Game {
     }
     draw() {
         for (const bullet of this.bullets) {
-            this.blit(bullet.texture, bullet.x, bullet.y);
+            blit(bullet.texture, bullet.x, bullet.y);
         }
         for (const fighter of this.fighters) {
-            this.blit(fighter.texture, fighter.x, fighter.y);
+            blit(fighter.texture, fighter.x, fighter.y);
         }
     }
     presentScene() {

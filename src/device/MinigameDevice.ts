@@ -15,7 +15,8 @@ export default class MinigameDevice implements Device {
         this.windowInfo = wx.getWindowInfo()
         const isDevTool = wx.getDeviceInfo().platform === "devtools";
         this.divideTimeBy = isDevTool ? 1 : 1000;
-
+        wx.onTouchStart(() => this.onKeyDown(67));
+        wx.onTouchEnd(() => this.onKeyUp(67));
     }
     getWindowInfo(): WechatMinigame.WindowInfo {
         return this.windowInfo

@@ -47,7 +47,7 @@ export default class Game {
     private readonly bullets: Set<Entity> = new Set();
     private readonly fighters: Set<Entity> = new Set();
     private enemySpwanTimer = 0;
-    private stageResetTimer = 0;
+    private stageResetTimer = 120;
     init() {
         initWindow(800, 450, "Shooter 01");
         this.playerTexture = loadTexture("resources/image/player.png");
@@ -213,7 +213,6 @@ export default class Game {
     private bulletHitFighter(b: Entity) {
         for (const fighter of this.fighters) {
             if (b.side !== fighter.side && collision(b.x, b.y, b.w, b.h, fighter.x, fighter.y, fighter.w, fighter.h)) {
-                b.health = 0;
                 fighter.health = 0;
                 return true;
             }

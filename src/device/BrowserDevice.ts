@@ -24,9 +24,9 @@ export default class BrowserDevice implements Device {
     constructor() {
         this.canvasGL = document.createElement("canvas");
         document.body.appendChild(this.canvasGL);
+        this.windowInfo = getWindowInfo();
         this.canvasGL.width = window.innerWidth * window.devicePixelRatio;
         this.canvasGL.height = window.innerHeight * window.devicePixelRatio;
-        this.windowInfo = getWindowInfo();
         window.addEventListener("keydown", (e) => this.onKeyDown(e.keyCode));
         window.addEventListener("keyup", (e) => this.onKeyUp(e.keyCode));
         window.addEventListener("resize", () => {

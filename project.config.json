@@ -1,0 +1,36 @@
+{
+  "compileType": "game",
+  "libVersion": "3.4.3",
+  "packOptions": {
+    "ignore": [
+      {
+        "value": "resources/font/NotoSansSC-Regular.ttf",
+        "type": "file"
+      },
+      {
+        "value": "resources/font/fa-solid-900.ttf",
+        "type": "file"
+      }
+    ],
+    "include": []
+  },
+  "setting": {
+    "coverView": true,
+    "es6": false,
+    "postcss": true,
+    "minified": false,
+    "enhance": false,
+    "showShadowRootInWxmlPanel": true,
+    "packNpmRelationList": [],
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  }
+}

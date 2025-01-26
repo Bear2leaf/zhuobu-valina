@@ -1,4 +1,4 @@
-import { mat4, vec4 } from "gl-matrix";
+import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import Device from "./device/Device";
 import { Convert, MTSDFFontData } from "./mtsdf/MTSDFFontData";
 import { MTSDFText } from "./mtsdf/MTSDFText";
@@ -157,21 +157,26 @@ export function blit(texture: Texture | null, x: number, y: number, color = WHIT
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x: center ? x - texture.width / 2 : x, y: center ? y - texture.height / 2 : y, width: texture.width, height: texture.height }, color);
+    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x: center ? x - texture.width / 2 : x, y: center ? y - texture.height / 2 : y, width: texture.width, height: texture.height }, color, 0);
 }
 export function blitRectRect(texture: Texture | null, src: Rectangle, dest: Rectangle) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, src, dest, WHITE);
+    drawTexture(texture, src, dest, WHITE, 0);
 }
 export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: number) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, WHITE);
+    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, WHITE, 0);
 }
-
+export function blitRotated(texture: Texture | null, x: number, y: number, angle: number, color = WHITE) {
+    if (!texture) {
+        throw new Error("Texture is not loaded");
+    }
+    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x: x - texture.width / 2, y: y - texture.height / 2, width: texture.width, height: texture.height }, color, angle);
+}
 export enum BlendMode {
     None,
     Add,
@@ -369,18 +374,30 @@ const linePositions = new Float32Array(3 * 4 * 500);
 const lineColors = new Float32Array(4 * 4 * 500);
 const lineIndices = new Uint16Array(6 * 500);
 let lineCount = 0;
-export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, color: vec4) {
+export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, color: vec4, angle: number) {
 
     const { gl, spriteDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = spriteDrawobject;
-    positions[0] = dest.x;
-    positions[1] = dest.y;
-    positions[3] = dest.x + dest.width;
-    positions[4] = dest.y;
-    positions[6] = dest.x + dest.width;
-    positions[7] = dest.y + dest.height;
-    positions[9] = dest.x;
-    positions[10] = dest.y + dest.height;
+    const center = vec2.fromValues(dest.x + dest.width / 2, dest.y + dest.height / 2);
+    const p0 = vec2.fromValues(dest.x, dest.y);
+    const p1 = vec2.fromValues(dest.x + dest.width, dest.y);
+    const p2 = vec2.fromValues(dest.x + dest.width, dest.y + dest.height);
+    const p3 = vec2.fromValues(dest.x, dest.y + dest.height);
+    vec2.rotate(p0, p0, center, angle);
+    vec2.rotate(p1, p1, center, angle);
+    vec2.rotate(p2, p2, center, angle);
+    vec2.rotate(p3, p3, center, angle);
+    positions[0] = p0[0];
+    positions[1] = p0[1];
+    positions[3] = p1[0];
+    positions[4] = p1[1];
+    positions[6] = p2[0];
+    positions[7] = p2[1];
+    positions[9] = p3[0];
+    positions[10] = p3[1];
+
+    
+
 
     texcoords[0] = src.x / texture.width;
     texcoords[1] = src.y / texture.height;
@@ -606,6 +623,10 @@ export enum KeyboardKey {
     KEY_LEFT = 37,
     KEY_RIGHT = 39,
     KEY_UP = 38,
+    KEY_W = 87,
+    KEY_A = 65,
+    KEY_S = 83,
+    KEY_D = 68,
 }
 export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);

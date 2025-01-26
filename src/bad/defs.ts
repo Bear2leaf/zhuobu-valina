@@ -24,7 +24,7 @@ export const MAX_SND_CHANNELS =  16
 
 export const NUM_HIGHSCORES =  8
 
-export const PLAYER_SPEED =  6
+export const PLAYER_SPEED =  120
 
 export const GLYPH_WIDTH =   18
 export const GLYPH_HEIGHT =  29

@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix";
-import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, clearBackground, getMouse, initContext, initDrawobjects, initPrograms, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture } from "../context";
+import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, clearBackground, getMouse, initContext, initDrawobjects, initPrograms, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture } from "../context";
 import Device from "../device/Device";
 import App from "./App";
 import Entity from "./Entity";
@@ -26,9 +26,11 @@ export default class Game {
         await addText("glsl/sprite.frag.sk", device);
         await addImage("font/NotoSansSC-Regular", device);
         await addImage("image/targetter", device);
+        await addImage("image/donk", device);
     }
     init() {
         this.app.stage.targetterTexture = loadTexture("image/targetter");
+        this.app.init();
     }
     prepareScene() {
         beginDrawing();
@@ -37,6 +39,25 @@ export default class Game {
     }
     doInput() {
         getMouse(this.app.mouse);
+        this.app.keyboard.clear();
+        if (isKeyDown(KeyboardKey.KEY_W)) {
+            this.app.keyboard.add(KeyboardKey.KEY_W);
+        }
+        if (isKeyDown(KeyboardKey.KEY_S)) {
+            this.app.keyboard.add(KeyboardKey.KEY_S);
+        }
+        if (isKeyDown(KeyboardKey.KEY_A)) {
+            this.app.keyboard.add(KeyboardKey.KEY_A);
+        }
+        if (isKeyDown(KeyboardKey.KEY_D)) {
+            this.app.keyboard.add(KeyboardKey.KEY_D);
+        }
+        if (isKeyDown(KeyboardKey.KEY_C)) {
+            this.app.keyboard.add(KeyboardKey.KEY_C);
+        }
+        if (isKeyDown(KeyboardKey.KEY_K)) {
+            this.app.keyboard.add(KeyboardKey.KEY_K);
+        }
     }
     presentScene() {
 

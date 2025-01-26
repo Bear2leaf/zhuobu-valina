@@ -36,6 +36,7 @@ export type Stage = {
 	readonly effects: Set<Effect>,
 	readonly ammo: Set<number>,
 	readonly camera: vec2,
+	readonly player: Entity
 };
 
 export type Highscore = {

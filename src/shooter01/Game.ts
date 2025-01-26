@@ -583,13 +583,23 @@ export default class Game {
     }
     private drawIntro() {
         pushMatrix()
-        matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 - 40, 1);
+        matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 - 40, 0);
         const scale = 1.25 + Math.sin(getTime() / 1000) * 0.25;
         matScale(scale, scale, 1);
         matTranslate(0, -20, 0);
         drawText("Shooter 01", 0, 0, 40, WHITE, "center");
         popMatrix();
-        drawText("Press K to start", getScreenWidth() / 2, getScreenHeight() / 2 + 10, 20, WHITE, "center");
+        pushMatrix();
+        matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 + 10, 0);
+        drawText("Press K to start", 0, 0, 20, WHITE, "center");
+        pushMatrix();
+        matTranslate(0, 10, 0);
+        pushMatrix();
+        matRotateZ(Math.sin(getTime() / 1000) * 0.1);
+        drawText("Foo", 0, -100, 20, YELLOW, "center");
+        popMatrix();
+        popMatrix();
+        popMatrix();
     }
 
     private drawHud() {

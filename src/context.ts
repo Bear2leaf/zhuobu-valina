@@ -15,7 +15,7 @@ function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, 
     }
     return _mtsdfTexts[key];
 }
-const matStack: mat4[] = [];
+const matStack: mat4[] = [mat4.identity(mat4.create())];
 function cacheAttributeLocation(gl: WebGL2RenderingContext, program: WebGLProgram, name: string): number {
 
     let attribLocs = _attributeLocs.get(program);
@@ -380,7 +380,10 @@ export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, c
 
 }
 export function pushMatrix() {
-    matStack.push(mat4.identity(mat4.create()));
+    const current = mat4.identity(mat4.create());
+    const prev = getCurrentMatrix();
+    mat4.multiply(current, prev, current);
+    matStack.push(current);
 }
 export function popMatrix() {
     matStack.pop();
@@ -398,7 +401,7 @@ export function matRotateZ(angle: number) {
     mat4.rotateZ(matStack[matStack.length - 1], matStack[matStack.length - 1], angle);
 }
 function getCurrentMatrix() {
-    return matStack.reduce((prev, cur) => mat4.multiply(prev, prev, cur), mat4.identity(mat4.create()));
+    return matStack[matStack.length - 1];
 }
 const c = vec4.create();
 const m = mat4.create();

@@ -98,7 +98,7 @@ export default class Game {
     private score = 0;
     private highScore = 0;
     private highScoreColor = WHITE;
-    private showHighScores = false;
+    private outro = false;
     private intro = true;
     init() {
         initWindow(800, 450, "Shooter 01");
@@ -161,11 +161,14 @@ export default class Game {
     }
     private doPlayer() {
         const keyboard = this.keyboard;
-        if (keyboard.has(KeyboardKey.KEY_K) && this.intro === true) {
-            this.intro = false;
-        }
-        if (keyboard.has(KeyboardKey.KEY_K) && this.start === false) {
-            this.start = true;
+        if (keyboard.has(KeyboardKey.KEY_K)) {
+            if (this.intro) {
+                this.intro = false;
+                this.start = true;
+            } else if (this.outro) {
+                this.outro = false;
+                this.start = true;
+            }
         }
         if (this.player.health === 0) {
             return;
@@ -282,7 +285,7 @@ export default class Game {
                 this.addExplosions(fighter.x, fighter.y, 32);
                 this.addDebris(fighter);
                 if (fighter.side === SIDE_PLAYER) {
-                    this.showHighScores = true;
+                    this.outro = true;
                     if (this.highScoreColor === YELLOW) {
                         this.highScores.unshift(this.highScore);
                         this.highScores.length = Math.min(this.highScores.length, 5);
@@ -300,7 +303,7 @@ export default class Game {
         return false;
     }
     private drawHighScores() {
-        if (this.showHighScores) {
+        if (this.outro) {
             pushMatrix()
             matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 - 80, 1);
             const scale = 1.25 + Math.sin(getTime() / 1000) * 0.25;
@@ -504,7 +507,7 @@ export default class Game {
         this.start = false;
         this.score = 0;
         this.highScoreColor = WHITE;
-        this.showHighScores = false
+        this.outro = false
     }
     private updateHighscore() {
         if (this.score > this.highScore) {
@@ -516,6 +519,9 @@ export default class Game {
         this.doBackground();
         this.doStarfield();
         this.doPlayer();
+        if (this.intro) {
+            return;
+        }
         this.doFighters();
         this.doBullets();
         this.spawnEnemies();

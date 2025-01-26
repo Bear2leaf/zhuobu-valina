@@ -19,7 +19,6 @@ export async function mainMinigame() {
     return device;
 }
 export async function start(device: Device) {
-    await addText("music/liver.json", device);
     await addText("font/NotoSansSC-Regular.json", device);
     await addText("glsl/line.vert.sk", device);
     await addText("glsl/line.frag.sk", device);
@@ -34,6 +33,7 @@ export async function start(device: Device) {
     await addImage("image/enemy", device);
     await addImage("image/background", device);
     await addImage("image/explosion", device);
+    await addImage("image/points", device);
     await addAudioBuffer("music/Mercury.mp3", device);
     initContext(device);
 

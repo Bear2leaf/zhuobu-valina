@@ -1,18 +1,20 @@
 import { vec4 } from "gl-matrix";
 import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW } from "../context";
 
- enum Note {
+enum Note {
     C = 147,
     D = 165,
     E = 175,
     F = 196,
     G = 220,
-    A = 247,
-    B = 277,
+    
 }
-const soundDefault = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.C}`;
-const soundDefault2 = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.D}`;
-const soundDefault3 = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.E}`;
+const soundDefaultC = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.C}`;
+const soundDefaultD = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.D}`;
+const soundDefaultE = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.E}`;
+const soundDefaultF = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.F}`;
+const soundDefaultG = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.G}`;
+
 
 const PLAYER_SPEED = 200;
 const ENEMY_SPEED = 80;
@@ -69,6 +71,7 @@ export default class Game {
     private enemyTexture: Texture | null = null;
     private backgroundTexture: Texture | null = null;
     private explosionTexture: Texture | null = null;
+    private pointsTexture: Texture | null = null;
     private readonly keyboard = new Set<KeyboardKey>();
     private readonly player: Entity = {
         texture: null,
@@ -84,6 +87,7 @@ export default class Game {
     }
     private readonly bullets: Set<Entity> = new Set();
     private readonly fighters: Set<Entity> = new Set();
+    private readonly points: Set<Entity> = new Set();
     private readonly explosions: Set<Explosion> = new Set();
     private readonly debris: Set<Debris> = new Set();
     private readonly stars: Array<Star> = new Array(MAX_STARS);
@@ -102,10 +106,13 @@ export default class Game {
         this.enemyTexture = loadTexture("image/enemy");
         this.backgroundTexture = loadTexture("image/background");
         this.explosionTexture = loadTexture("image/explosion");
+        this.pointsTexture = loadTexture("image/points");
         this.resetStage();
-        loadSound(soundDefault);
-        loadSound(soundDefault2);
-        loadSound(soundDefault3);
+        loadSound(soundDefaultC);
+        loadSound(soundDefaultD);
+        loadSound(soundDefaultE);
+        loadSound(soundDefaultF);
+        loadSound(soundDefaultG);
         // playMusic("Mercury.mp3");
     }
     private initPlayer() {
@@ -218,7 +225,7 @@ export default class Game {
         }
         this.bullets.add(bullet);
         e.reload = rand() % getFPS() * 2;
-        playSound(soundDefault2);
+        playSound(soundDefaultD);
     }
     private doFighters() {
         const delta = getFrameTime();
@@ -262,18 +269,77 @@ export default class Game {
 
                 this.addExplosions(fighter.x, fighter.y, 32);
                 this.addDebris(fighter);
-                playSound(soundDefault);
-                if (fighter.side === SIDE_ALIEN) {
+                if (fighter.side === SIDE_PLAYER) {
+                    playSound(soundDefaultC);
+                } else if (fighter.side === SIDE_ALIEN) {
                     this.score++;
                     if (this.score > this.highScore) {
                         this.highScore = this.score;
                         this.highScoreColor = YELLOW;
                     }
+                    playSound(soundDefaultF);
+                    this.addPointsPod(fighter.x + fighter.w / 2, fighter.y + fighter.h / 2);
                 }
                 return true;
             }
         }
         return false;
+    }
+    private doPointsPods() {
+        for (const point of this.points) {
+            if (point.x < 0) {
+                point.x = 0;
+                point.dx = -point.dx;
+            }
+            if (point.x + point.w > getScreenWidth()) {
+                point.x = getScreenWidth() - point.w;
+                point.dx = -point.dx;
+            }
+            if (point.y < 0) {
+                point.y = 0;
+                point.dy = -point.dy;
+            }
+            if (point.y + point.h > getScreenHeight()) {
+                point.y = getScreenHeight() - point.h;
+                point.dy = -point.dy;
+            }
+            point.x += point.dx;
+            point.y += point.dy;
+            if (this.player.health !== 0 && collision(this.player.x, this.player.y, this.player.w, this.player.h, point.x, point.y, point.w, point.h)) {
+                point.health = 0;
+                this.score += 1;
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                    this.highScoreColor = YELLOW;
+                }
+                playSound(soundDefaultG);
+                if (--point.health <= 0) {
+                    this.points.delete(point);
+                }
+            }
+        }
+    }
+    private addPointsPod(x: number, y: number) {
+        const { pointsTexture } = this;
+        if (!pointsTexture) {
+            throw new Error("Points texture is not loaded");
+        }
+        const point: Entity = {
+            texture: pointsTexture,
+            x,
+            y,
+            w: pointsTexture.width,
+            h: pointsTexture.height,
+            dx: (rand() % 10) - (rand() % 10),
+            dy: (rand() % 10) - (rand() % 10),
+            side: SIDE_ALIEN,
+            health: 1,
+            reload: 0
+        }
+        point.x -= point.w / 2;
+        point.y -= point.h / 2;
+        this.points.add(point);
+
     }
     private addExplosions(x: number, y: number, count: number) {
         for (let i = 0; i < count; i++) {
@@ -366,7 +432,7 @@ export default class Game {
             this.bullets.add(bullet);
         }
         this.player.reload = PLAYER_COOLDOWN;
-        playSound(soundDefault3);
+        playSound(soundDefaultE);
     }
     private clipPlayer() {
         const { player } = this;
@@ -403,6 +469,7 @@ export default class Game {
         this.fighters.clear();
         this.explosions.clear();
         this.debris.clear();
+        this.points.clear();
         this.initStarfield();
         this.initPlayer();
         this.enemySpwanTimer = 0;
@@ -417,6 +484,7 @@ export default class Game {
         this.doFighters();
         this.doBullets();
         this.spawnEnemies();
+        this.doPointsPods();
         this.clipPlayer();
         if (this.player.health === 0 && --this.stageResetTimer <= 0) {
             this.resetStage();
@@ -424,6 +492,7 @@ export default class Game {
         this.doExplosions();
         this.doDebris();
     }
+
     doBackground() {
         if (--this.backgroundX < -getScreenWidth()) {
             this.backgroundX = 0;
@@ -465,6 +534,9 @@ export default class Game {
         for (const fighter of this.fighters) {
             blit(fighter.texture, fighter.x, fighter.y);
         }
+        for (const point of this.points) {
+            blit(point.texture, point.x, point.y);
+        }
         this.drawDebris();
         this.drawExplosions();
         this.drawHud();
@@ -474,6 +546,7 @@ export default class Game {
         drawText("Press C to fire", 10, 30, 20, WHITE);
         drawText(`Bullets: ${this.bullets.size}`, 10, 50, 20, WHITE);
         drawText(`Fighters: ${this.fighters.size}`, 10, 70, 20, WHITE);
+        drawText(`PointsPods: ${this.points.size}`, 10, 90, 20, WHITE);
         drawText(`Score: ${this.score}`, getScreenWidth() - 10, 10, 20, WHITE, "right");
         drawText(`High Score: ${this.highScore}`, getScreenWidth() - 10, 30, 20, this.highScoreColor, "right");
     }

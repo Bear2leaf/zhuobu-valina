@@ -15,6 +15,7 @@ function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, 
     }
     return _mtsdfTexts[key];
 }
+const matStack: mat4[] = [];
 function cacheAttributeLocation(gl: WebGL2RenderingContext, program: WebGLProgram, name: string): number {
 
     let attribLocs = _attributeLocs.get(program);
@@ -264,7 +265,6 @@ export function beginDrawing() {
     linePositions.fill(0);
     lineColors.fill(0);
     lineIndices.fill(0);
-
 }
 export function endDrawing() {
     flushLines();
@@ -308,7 +308,7 @@ export function drawText(content: string, x: number, y: number, size: number, co
     }
     gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, color, 1 / 255));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [x, y, 0]));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.multiply(m, getCurrentMatrix(), mat4.fromTranslation(m, [x, y, 0])));
     gl.uniform2fv(cacheUniformLocation(gl, program, "u_unitRange"), [textures[0].width, textures[0].height]);
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
@@ -374,10 +374,31 @@ export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, c
     gl.uniform1i(cacheUniformLocation(gl, program, `u_texture0`), 0);
     gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, color, 1 / 255));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [0, 0, 0]));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, getCurrentMatrix());
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
+}
+export function pushMatrix() {
+    matStack.push(mat4.identity(mat4.create()));
+}
+export function popMatrix() {
+    matStack.pop();
+}
+export function matTranslate(x: number, y: number, z: number) {
+    if (matStack.length === 0) throw new Error("no matrix");
+    mat4.translate(matStack[matStack.length - 1], matStack[matStack.length - 1], [x, y, z]);
+}
+export function matScale(x: number, y: number, z: number) {
+    if (matStack.length === 0) throw new Error("no matrix");
+    mat4.scale(matStack[matStack.length - 1], matStack[matStack.length - 1], [x, y, z]);
+}
+export function matRotateZ(angle: number) {
+    if (matStack.length === 0) throw new Error("no matrix");
+    mat4.rotateZ(matStack[matStack.length - 1], matStack[matStack.length - 1], angle);
+}
+function getCurrentMatrix() {
+    return matStack.reduce((prev, cur) => mat4.multiply(prev, prev, cur), mat4.identity(mat4.create()));
 }
 const c = vec4.create();
 const m = mat4.create();
@@ -449,11 +470,14 @@ function flushLines() {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.DYNAMIC_DRAW);
     gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, WHITE, 1 / 255));
     gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [0, 0, 0]));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, getCurrentMatrix());
     gl.drawElements(gl.TRIANGLES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
 }
 export function getFPS(): number {
     return context.fps;
+}
+export function getTime(): number {
+    return context.time;
 }
 
 export function getFrameTime(): number {
@@ -531,6 +555,7 @@ export type Texture = {
 }
 export enum KeyboardKey {
     KEY_C = 67,
+    KEY_K = 75,
     KEY_DOWN = 40,
     KEY_LEFT = 37,
     KEY_RIGHT = 39,

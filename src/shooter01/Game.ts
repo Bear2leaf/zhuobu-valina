@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix";
-import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW } from "../context";
+import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, popMatrix, pushMatrix, matScale, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW, getTime, matTranslate, matRotateZ } from "../context";
 
 enum Note {
     C = 147,
@@ -7,7 +7,7 @@ enum Note {
     E = 175,
     F = 196,
     G = 220,
-    
+
 }
 const soundDefaultC = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.C}`;
 const soundDefaultD = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.D}`;
@@ -91,12 +91,15 @@ export default class Game {
     private readonly explosions: Set<Explosion> = new Set();
     private readonly debris: Set<Debris> = new Set();
     private readonly stars: Array<Star> = new Array(MAX_STARS);
+    private readonly highScores: Array<number> = [];
     private enemySpwanTimer = 0;
-    private stageResetTimer = 0;
+    private start = false;
     private backgroundX = 0;
     private score = 0;
     private highScore = 0;
     private highScoreColor = WHITE;
+    private showHighScores = false;
+    private intro = true;
     init() {
         initWindow(800, 450, "Shooter 01");
         initAudio();
@@ -147,6 +150,9 @@ export default class Game {
         if (isKeyDown(KeyboardKey.KEY_C)) {
             this.keyboard.add(KeyboardKey.KEY_C);
         }
+        if (isKeyDown(KeyboardKey.KEY_K)) {
+            this.keyboard.add(KeyboardKey.KEY_K);
+        }
 
     }
     prepareScene() {
@@ -154,10 +160,16 @@ export default class Game {
         clearBackground(RAYWHITE);
     }
     private doPlayer() {
+        const keyboard = this.keyboard;
+        if (keyboard.has(KeyboardKey.KEY_K) && this.intro === true) {
+            this.intro = false;
+        }
+        if (keyboard.has(KeyboardKey.KEY_K) && this.start === false) {
+            this.start = true;
+        }
         if (this.player.health === 0) {
             return;
         }
-        const keyboard = this.keyboard;
         this.player.dy = 0;
         if (keyboard.has(KeyboardKey.KEY_UP)) {
             this.player.dy += -PLAYER_SPEED;
@@ -270,13 +282,15 @@ export default class Game {
                 this.addExplosions(fighter.x, fighter.y, 32);
                 this.addDebris(fighter);
                 if (fighter.side === SIDE_PLAYER) {
+                    this.showHighScores = true;
+                    if (this.highScoreColor === YELLOW) {
+                        this.highScores.unshift(this.highScore);
+                        this.highScores.length = Math.min(this.highScores.length, 5);
+                    }
                     playSound(soundDefaultC);
                 } else if (fighter.side === SIDE_ALIEN) {
                     this.score++;
-                    if (this.score > this.highScore) {
-                        this.highScore = this.score;
-                        this.highScoreColor = YELLOW;
-                    }
+                    this.updateHighscore();
                     playSound(soundDefaultF);
                     this.addPointsPod(fighter.x + fighter.w / 2, fighter.y + fighter.h / 2);
                 }
@@ -284,6 +298,23 @@ export default class Game {
             }
         }
         return false;
+    }
+    private drawHighScores() {
+        if (this.showHighScores) {
+            pushMatrix()
+            matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 - 80, 1);
+            const scale = 1.25 + Math.sin(getTime() / 1000) * 0.25;
+            matScale(scale, scale, 1);
+            matTranslate(0, -20, 0);
+            drawText("High Scores", 0, 0, 20, WHITE, "center");
+            popMatrix();
+            drawText("Press K to restart", getScreenWidth() / 2, getScreenHeight() / 2 - 60, 20, WHITE, "center");
+            let y = getScreenHeight() / 2 - 20;
+            for (const score of this.highScores) {
+                drawText(score.toString(), getScreenWidth() / 2, y, 20, WHITE, "center");
+                y += 30;
+            }
+        }
     }
     private doPointsPods() {
         for (const point of this.points) {
@@ -308,10 +339,7 @@ export default class Game {
             if (this.player.health !== 0 && collision(this.player.x, this.player.y, this.player.w, this.player.h, point.x, point.y, point.w, point.h)) {
                 point.health = 0;
                 this.score += 1;
-                if (this.score > this.highScore) {
-                    this.highScore = this.score;
-                    this.highScoreColor = YELLOW;
-                }
+                this.updateHighscore();
                 playSound(soundDefaultG);
                 if (--point.health <= 0) {
                     this.points.delete(point);
@@ -473,9 +501,16 @@ export default class Game {
         this.initStarfield();
         this.initPlayer();
         this.enemySpwanTimer = 0;
-        this.stageResetTimer = (getFPS() || 60) * 3;
+        this.start = false;
         this.score = 0;
         this.highScoreColor = WHITE;
+        this.showHighScores = false
+    }
+    private updateHighscore() {
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            this.highScoreColor = YELLOW;
+        }
     }
     update() {
         this.doBackground();
@@ -486,7 +521,7 @@ export default class Game {
         this.spawnEnemies();
         this.doPointsPods();
         this.clipPlayer();
-        if (this.player.health === 0 && --this.stageResetTimer <= 0) {
+        if (this.start) {
             this.resetStage();
         }
         this.doExplosions();
@@ -528,6 +563,10 @@ export default class Game {
     draw() {
         this.drawBackground();
         this.drawStarfield();
+        if (this.intro) {
+            this.drawIntro();
+            return;
+        }
         for (const bullet of this.bullets) {
             blit(bullet.texture, bullet.x, bullet.y);
         }
@@ -540,7 +579,19 @@ export default class Game {
         this.drawDebris();
         this.drawExplosions();
         this.drawHud();
+        this.drawHighScores();
     }
+    private drawIntro() {
+        pushMatrix()
+        matTranslate(getScreenWidth() / 2, getScreenHeight() / 2 - 40, 1);
+        const scale = 1.25 + Math.sin(getTime() / 1000) * 0.25;
+        matScale(scale, scale, 1);
+        matTranslate(0, -20, 0);
+        drawText("Shooter 01", 0, 0, 40, WHITE, "center");
+        popMatrix();
+        drawText("Press K to start", getScreenWidth() / 2, getScreenHeight() / 2 + 10, 20, WHITE, "center");
+    }
+
     private drawHud() {
         drawFPS(10, 10);
         drawText("Press C to fire", 10, 30, 20, WHITE);

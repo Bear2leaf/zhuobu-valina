@@ -1,5 +1,6 @@
 import { vec4 } from "gl-matrix";
-import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, popMatrix, pushMatrix, matScale, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW, getTime, matTranslate, matRotateZ } from "../context";
+import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, popMatrix, pushMatrix, matScale, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW, getTime, matTranslate, matRotateZ, addAudioBuffer, addImage, addText } from "../context";
+import Device from "../device/Device";
 
 enum Note {
     C = 147,
@@ -100,6 +101,28 @@ export default class Game {
     private highScoreColor = WHITE;
     private outro = false;
     private intro = true;
+    readonly app = {
+        logic: this.update.bind(this),
+        draw: this.draw.bind(this)
+    }
+    async load(device: Device) {
+        await addText("font/NotoSansSC-Regular.json", device);
+        await addText("glsl/line.vert.sk", device);
+        await addText("glsl/line.frag.sk", device);
+        await addText("glsl/text.vert.sk", device);
+        await addText("glsl/text.frag.sk", device);
+        await addText("glsl/sprite.vert.sk", device);
+        await addText("glsl/sprite.frag.sk", device);
+        await addImage("font/NotoSansSC-Regular", device);
+        await addImage("image/player", device);
+        await addImage("image/playerBullet", device);
+        await addImage("image/alienBullet", device);
+        await addImage("image/enemy", device);
+        await addImage("image/background", device);
+        await addImage("image/explosion", device);
+        await addImage("image/points", device);
+        await addAudioBuffer("music/Mercury.mp3", device);
+    }
     init() {
         initWindow(800, 450, "Shooter 01");
         initAudio();

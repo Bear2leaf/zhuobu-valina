@@ -2,6 +2,7 @@ import { mat4, vec4 } from "gl-matrix";
 import Device from "./device/Device";
 import { Convert, MTSDFFontData } from "./mtsdf/MTSDFFontData";
 import { MTSDFText } from "./mtsdf/MTSDFText";
+import { pl_synth_init } from "./synth/pl_synth";
 
 const _attributeLocs: WeakMap<WebGLProgram, Record<string, number>> = new WeakMap();
 const _uniformLocs: WeakMap<WebGLProgram, Record<string, WebGLUniformLocation>> = new WeakMap();
@@ -50,6 +51,8 @@ type Drawobject = {
 
 const context = {
     device: null! as Device,
+    audio: null! as AudioContext,
+    synth: null! as ReturnType<typeof pl_synth_init>,
     gl: null! as WebGL2RenderingContext,
     time: 0,
     fps: 0,
@@ -67,7 +70,10 @@ const context = {
 
 const images = new Map<string, HTMLImageElement>();
 const texts = new Map<string, string>();
+const buffers = new Map<string, ArrayBuffer>();
 
+const musicNodes = new Map<string, WechatMinigame.BufferSourceNode>();
+const audioBuffers = new Map<string, WechatMinigame.AudioBuffer>();
 function createDrawobject(program: WebGLProgram, textures: readonly Texture[]): Drawobject {
     const { gl } = context;
     const vao = gl.createVertexArray();
@@ -80,8 +86,27 @@ function createDrawobject(program: WebGLProgram, textures: readonly Texture[]): 
     if (!vbo1) throw new Error("createBuffer failed");
     return { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, program, textures };
 }
+export async function addAudioBuffer(name: string, device: Device) {
+    const buffer = await device.loadBuffer(`resources/${name}`);
+    const ctx = device.createWebAudioContext();
+    await new Promise((resolve, reject) => {
+        ctx.decodeAudioData(buffer, (buffer) => {
+            audioBuffers.set(name, buffer);
+            resolve(null);
+        }, (e) => {
+            console.error(e);
+            reject(e);
+        });
+    });
+
+
+
+}
 export async function addImage(name: string, device: Device) {
     images.set(name, await device.loadImage(`resources/${name}.png`));
+}
+export async function addBuffer(name: string, device: Device) {
+    buffers.set(name, await device.loadBuffer(`resources/${name}`));
 }
 export async function addText(name: string, device: Device) {
     texts.set(name, await device.loadText(`resources/${name}`));
@@ -222,6 +247,11 @@ export function initWindow(width: number, height: number, title: string) {
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
     gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
 
+}
+export function initAudio() {
+    const ctx = context.device.createWebAudioContext();
+    context.audio = ctx;
+    context.synth = pl_synth_init(ctx);
 }
 export function beginDrawing() {
     const { device, gl } = context;
@@ -444,6 +474,48 @@ export function loadTexture(url: string): Texture {
     const img = images.get(url);
     if (!img) throw new Error("image not found");
     return createTexture(img);
+}
+export function loadSound(name: string) {
+    const ctx = context.audio;
+    const synth = context.synth;
+    const [instrument, note] = name.split("#");
+    audioBuffers.set(name, synth.sound(instrument.split(",").map(o => parseInt(o ? o : "0"), 10), note ? parseInt(note) : undefined));
+}
+export function playMusic(name: string) {
+    const { audio } = context;
+    const buffer = audioBuffers.get(`music/${name}`);
+    if (!buffer) throw new Error("buffer not found");
+    const old = musicNodes.get(name);
+    if (old) {
+        old.stop();
+        old.disconnect();
+    }
+    const node = audio.createBufferSource();
+    node.buffer = buffer;
+    musicNodes.set(name, node);
+    node.loop = true;
+    node.connect(audio.destination);
+    node.start();
+    context.audio.resume();
+}
+export function playSound(name: string) {
+    const { audio } = context;
+    const buffer = audioBuffers.get(name);
+    if (!buffer) throw new Error("buffer not found");
+    const node = audio.createBufferSource();
+    node.buffer = buffer;
+    const gain = audio.createGain();
+    gain.gain.value = 0.5;
+    node.connect(gain);
+    gain.connect(audio.destination);
+    node.start();
+}
+export function stopMusic(name: string) {
+    const node = musicNodes.get(name);
+    if (node) {
+        node.stop();
+        musicNodes.delete(name);
+    }
 }
 export type Rectangle = {
     x: number;

@@ -9,4 +9,5 @@ export default interface Device {
   onKeyDown(key: number): void;
   loadText(url: string): Promise<string>;
   loadImage(url: string): Promise<HTMLImageElement>;
+  loadBuffer(url: string): Promise<ArrayBuffer>;
 }

@@ -23,6 +23,7 @@ function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
 export default class BrowserDevice implements Device {
     private readonly windowInfo: WechatMinigame.WindowInfo;
     private readonly canvasGL: HTMLCanvasElement
+    private readonly audioContext: AudioContext = new AudioContext();
     constructor() {
         this.canvasGL = document.createElement("canvas");
         document.body.appendChild(this.canvasGL);
@@ -56,7 +57,7 @@ export default class BrowserDevice implements Device {
         return null;
     }
     createWebAudioContext(): AudioContext {
-        return new AudioContext();
+        return this.audioContext;
     }
     loadText(url: string): Promise<string> {
         return fetch(url).then(response => response.text());
@@ -67,6 +68,9 @@ export default class BrowserDevice implements Device {
             img.src = url;
             img.onload = () => resolve(img);
         });
+    }
+    loadBuffer(url: string): Promise<ArrayBuffer> {
+        return fetch(url).then(response => response.arrayBuffer());
     }
 }
 
@@ -91,5 +95,6 @@ declare const performance: {
 }
 declare type Response = {
     text(): Promise<string>;
+    arrayBuffer(): Promise<ArrayBuffer>;
 }
 declare const fetch: (url: string) => Promise<Response>;

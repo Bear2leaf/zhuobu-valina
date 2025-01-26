@@ -5,6 +5,7 @@ import Device from "./Device";
 export default class MinigameDevice implements Device {
     private readonly windowInfo: WechatMinigame.WindowInfo;
     private readonly canvasGL: HTMLCanvasElement
+    private readonly audioContext: WechatMinigame.WebAudioContext = wx.createWebAudioContext();
     private readonly divideTimeBy: number;
     private startupTime: number = wx.getPerformance().now();
     constructor() {
@@ -49,7 +50,7 @@ export default class MinigameDevice implements Device {
         });
     }
     createWebAudioContext(): AudioContext {
-        return wx.createWebAudioContext();
+        return this.audioContext;
     }
     onKeyUp = (key: number) => {
         throw new Error("Method not implemented.");
@@ -66,6 +67,9 @@ export default class MinigameDevice implements Device {
             img.src = url;
             img.onload = () => resolve(img);
         });
+    }
+    loadBuffer(url: string): Promise<ArrayBuffer> {
+        return Promise.resolve(wx.getFileSystemManager().readFileSync(url) as ArrayBuffer);
     }
 }
 

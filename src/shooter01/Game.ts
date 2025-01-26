@@ -1,5 +1,18 @@
 import { vec4 } from "gl-matrix";
-import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadTexture, rand, RAYWHITE, Rectangle, setBlendMode, Texture, WHITE } from "../context";
+import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE } from "../context";
+
+ enum Note {
+    C = 147,
+    D = 165,
+    E = 175,
+    F = 196,
+    G = 220,
+    A = 247,
+    B = 277,
+}
+const soundDefault = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.C}`;
+const soundDefault2 = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.D}`;
+const soundDefault3 = `7,3,140,1,232,3,8,,9,1,139,3,,4611,1403,34215,256,4,1316,255,,,,1,,1,7,255#${Note.E}`;
 
 const PLAYER_SPEED = 200;
 const ENEMY_SPEED = 80;
@@ -10,7 +23,6 @@ const ENEMY_SPAWN_COOLDOWN = 120;
 const SIDE_PLAYER = 0;
 const SIDE_ALIEN = 1;
 const MAX_STARS = 500;
-
 
 function collision(x1: number, y1: number, w1: number, h1: number, x2: number, y2: number, w2: number, h2: number) {
     return Math.max(x1, x2) < Math.min(x1 + w1, x2 + w2) && Math.max(y1, y2) < Math.min(y1 + h1, y2 + h2);
@@ -80,6 +92,7 @@ export default class Game {
     private backgroundX = 0;
     init() {
         initWindow(800, 450, "Shooter 01");
+        initAudio();
         this.playerTexture = loadTexture("image/player");
         this.playerBulletTexture = loadTexture("image/playerBullet");
         this.enemyBulletTexture = loadTexture("image/alienBullet");
@@ -87,6 +100,10 @@ export default class Game {
         this.backgroundTexture = loadTexture("image/background");
         this.explosionTexture = loadTexture("image/explosion");
         this.resetStage();
+        loadSound(soundDefault);
+        loadSound(soundDefault2);
+        loadSound(soundDefault3);
+        // playMusic("Mercury.mp3");
     }
     private initPlayer() {
         const { playerTexture } = this;
@@ -198,6 +215,7 @@ export default class Game {
         }
         this.bullets.add(bullet);
         e.reload = rand() % getFPS() * 2;
+        playSound(soundDefault2);
     }
     private doFighters() {
         const delta = getFrameTime();
@@ -241,6 +259,7 @@ export default class Game {
 
                 this.addExplosions(fighter.x, fighter.y, 32);
                 this.addDebris(fighter);
+                playSound(soundDefault);
                 return true;
             }
         }
@@ -337,6 +356,7 @@ export default class Game {
             this.bullets.add(bullet);
         }
         this.player.reload = PLAYER_COOLDOWN;
+        playSound(soundDefault3);
     }
     private clipPlayer() {
         const { player } = this;

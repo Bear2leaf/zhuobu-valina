@@ -59,6 +59,7 @@ const context = {
     time: 0,
     fps: 0,
     frameTime: 0,
+    mouse: { x: 0, y: 0, left: false, right: false, middle: false, wheel: 0 },
     keyboard: new Set<number>(),
     textDrawobject: null! as Drawobject,
     spriteDrawobject: null! as Drawobject,
@@ -152,11 +153,11 @@ function createShaderProgram(vert: string, frag: string) {
     return program;
 }
 
-export function blit(texture: Texture | null, x: number, y: number, color = WHITE) {
+export function blit(texture: Texture | null, x: number, y: number, color = WHITE, center = false) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x, y, width: texture.width, height: texture.height }, color);
+    drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x: center ? x - texture.width / 2 : x, y: center ? y - texture.height / 2 : y, width: texture.width, height: texture.height }, color);
 }
 export function blitRectRect(texture: Texture | null, src: Rectangle, dest: Rectangle) {
     if (!texture) {
@@ -229,8 +230,42 @@ export function initDrawobjects() {
 export function initContext(device: Device) {
     device.onKeyDown = (key) => context.keyboard.add(key);
     device.onKeyUp = (key) => context.keyboard.delete(key);
+    device.onMouseMove = (x, y) => {
+        context.mouse.x = x;
+        context.mouse.y = y;
+    }
+    device.onMouseDown = (button) => {
+        switch (button) {
+            case 0:
+                context.mouse.left = true;
+                break;
+            case 1:
+                context.mouse.middle = true;
+                break;
+            case 2:
+                context.mouse.right = true;
+                break;
+        }
+    }
+    device.onMouseUp = (button) => {
+        switch (button) {
+            case 0:
+                context.mouse.left = false;
+                break;
+            case 1:
+                context.mouse.middle = false;
+                break;
+            case 2:
+                context.mouse.right = false;
+                break;
+        }
+    }
+    device.onMouseMove = (x, y) => {
+        context.mouse.x = x;
+        context.mouse.y = y;
+    }
     context.device = device;
-    context.gl = device.getCanvasGL().getContext('webgl2', {});
+    context.gl = device.getCanvasGL().getContext('webgl2', {}) as WebGL2RenderingContext;
     const image = images.get(`font/NotoSansSC-Regular`);
     if (!image) throw new Error("image not found");
     context.textTexture = createTexture(image);
@@ -509,6 +544,14 @@ export function loadSound(name: string) {
     const [instrument, note] = name.split("#");
     audioBuffers.set(name, synth.sound(instrument.split(",").map(o => parseInt(o ? o : "0"), 10), note ? parseInt(note) : undefined));
 }
+export function getMouse(mouse: { x: number, y: number, left: boolean, right: boolean, middle: boolean, wheel: number }) {
+    mouse.x = context.mouse.x;
+    mouse.y = context.mouse.y;
+    mouse.left = context.mouse.left;
+    mouse.right = context.mouse.right;
+    mouse.middle = context.mouse.middle;
+    mouse.wheel = context.mouse.wheel;
+}
 export function playMusic(name: string) {
     const { audio } = context;
     const buffer = audioBuffers.get(`music/${name}`);
@@ -566,5 +609,6 @@ export enum KeyboardKey {
 }
 export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);
+export const BLACK = vec4.fromValues(0, 0, 0, 255);
 export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
 export const WHITE = vec4.fromValues(255, 255, 255, 255);

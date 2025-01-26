@@ -19,10 +19,18 @@ export default class MinigameDevice implements Device {
         wx.onTouchStart((e) => {
             if (e.touches.length === 1) this.onKeyDown(67);
             if (e.touches.length === 2) this.onKeyDown(75);
+            this.onMouseMove(e.touches[0].clientX, e.touches[0].clientY);
+            this.onMouseDown(0);
+        });
+        wx.onTouchMove((e) => {
+            this.onMouseMove(e.touches[0].clientX, e.touches[0].clientY);
         });
         wx.onTouchEnd((e) => {
             this.onKeyUp(67);
             this.onKeyUp(75);
+            this.onMouseUp(0);
+            this.onMouseUp(2);
+            this.onMouseUp(1);
         });
     }
     getWindowInfo(): WechatMinigame.WindowInfo {
@@ -62,6 +70,15 @@ export default class MinigameDevice implements Device {
         throw new Error("Method not implemented.");
     }
     onKeyDown = (key: number) => {
+        throw new Error("Method not implemented.");
+    }
+    onMouseMove(x: number, y: number): void {
+        throw new Error("Method not implemented.");
+    }
+    onMouseDown(button: number): void {
+        throw new Error("Method not implemented.");
+    }
+    onMouseUp(button: number): void {
         throw new Error("Method not implemented.");
     }
     loadText(url: string): Promise<string> {

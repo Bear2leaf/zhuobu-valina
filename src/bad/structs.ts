@@ -30,6 +30,7 @@ export type Effect = {
 
 export type Stage = {
 	score: number,
+	targetterTexture: Texture | null,
 	readonly entities: Set<Entity>,
 	readonly bullets: Set<Entity>,
 	readonly effects: Set<Effect>,

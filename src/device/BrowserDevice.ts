@@ -34,6 +34,10 @@ export default class BrowserDevice implements Device {
             Object.assign(this.windowInfo, getWindowInfo(this.canvasGL));
             this.onResize()
         });
+        window.addEventListener("mousemove", (e) => this.onMouseMove(e.clientX, e.clientY));
+        window.addEventListener("mousedown", (e) => this.onMouseDown(e.button));
+        window.addEventListener("mouseup", (e) => this.onMouseUp(e.button));
+
     }
     onResize: () => void = () => {
         throw new Error("Method not implemented.");
@@ -42,6 +46,15 @@ export default class BrowserDevice implements Device {
         throw new Error("Method not implemented.");
     }
     onKeyDown = (key: number) => {
+        throw new Error("Method not implemented.");
+    }
+    onMouseMove(x: number, y: number): void {
+        throw new Error("Method not implemented.");
+    }
+    onMouseDown(button: number): void {
+        throw new Error("Method not implemented.");
+    }
+    onMouseUp(button: number): void {
         throw new Error("Method not implemented.");
     }
     getCanvasGL(): HTMLCanvasElement {
@@ -89,6 +102,9 @@ declare const window: {
     addEventListener(type: "keydown", listener: (e: { keyCode: number }) => void): void;
     addEventListener(type: "keyup", listener: (e: { keyCode: number }) => void): void;
     addEventListener(type: "resize", listener: () => void): void;
+    addEventListener(type: "mousemove", listener: (e: { clientX: number, clientY: number }) => void): void;
+    addEventListener(type: "mousedown", listener: (e: { button: number }) => void): void;
+    addEventListener(type: "mouseup", listener: (e: { button: number }) => void): void;
 }
 declare const performance: {
     now: () => number;

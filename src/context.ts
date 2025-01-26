@@ -7,10 +7,11 @@ import { pl_synth_init } from "./synth/pl_synth";
 const _attributeLocs: WeakMap<WebGLProgram, Record<string, number>> = new WeakMap();
 const _uniformLocs: WeakMap<WebGLProgram, Record<string, WebGLUniformLocation>> = new WeakMap();
 const _mtsdfTexts: Record<string, MTSDFText> = {};
-function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number): MTSDFText {
-    const key = `${content}_${size}`;
+type TextAlign = "left" | "center" | "right";
+function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, align: TextAlign): MTSDFText {
+    const key = `${content}_${size}_${align}`;
     if (_mtsdfTexts[key] === undefined) {
-        _mtsdfTexts[key] = new MTSDFText({ font: fontData, text: content, size });
+        _mtsdfTexts[key] = new MTSDFText({ font: fontData, text: content, size, align });
     }
     return _mtsdfTexts[key];
 }
@@ -278,10 +279,10 @@ export function drawFPS(x: number, y: number) {
     drawText(`FPS: ${context.fps}`, x, y, 20, WHITE);
 }
 let text: MTSDFText = null!
-export function drawText(content: string, x: number, y: number, size: number, color: vec4) {
+export function drawText(content: string, x: number, y: number, size: number, color: vec4, align: TextAlign = "left") {
     const { gl, fontData, textDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = textDrawobject;
-    let mtsdfText = cacheMTSDFText(content, fontData, size);
+    let mtsdfText = cacheMTSDFText(content, fontData, size, align);
     mtsdfText.update({ text: content });
     const positions = mtsdfText.buffers.position;
     const texcoords = mtsdfText.buffers.uv;
@@ -535,6 +536,7 @@ export enum KeyboardKey {
     KEY_RIGHT = 39,
     KEY_UP = 38,
 }
+export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);
 export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
 export const WHITE = vec4.fromValues(255, 255, 255, 255);

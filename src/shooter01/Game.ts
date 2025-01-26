@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix";
-import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE } from "../context";
+import { beginDrawing, BlendMode, blit, blitRect, blitRectRect, BLUE, clearBackground, drawFPS, drawLine, drawText, drawTexture, endDrawing, getFPS, getFrameTime, getScreenHeight, getScreenWidth, initAudio, initWindow, isKeyDown, isKeyUp, KeyboardKey, loadSound, loadTexture, playMusic, playSound, rand, RAYWHITE, Rectangle, setBlendMode, stopMusic, Texture, WHITE, YELLOW } from "../context";
 
  enum Note {
     C = 147,
@@ -90,6 +90,9 @@ export default class Game {
     private enemySpwanTimer = 0;
     private stageResetTimer = 0;
     private backgroundX = 0;
+    private score = 0;
+    private highScore = 0;
+    private highScoreColor = WHITE;
     init() {
         initWindow(800, 450, "Shooter 01");
         initAudio();
@@ -248,7 +251,7 @@ export default class Game {
 
             if (this.bulletHitFighter(bullet) || bullet.x > getScreenWidth() || bullet.x < -bullet.w || bullet.y > getScreenHeight() || bullet.y < -bullet.h) {
                 bullet.health = 0;
-
+                return;
             }
         }
     }
@@ -260,6 +263,13 @@ export default class Game {
                 this.addExplosions(fighter.x, fighter.y, 32);
                 this.addDebris(fighter);
                 playSound(soundDefault);
+                if (fighter.side === SIDE_ALIEN) {
+                    this.score++;
+                    if (this.score > this.highScore) {
+                        this.highScore = this.score;
+                        this.highScoreColor = YELLOW;
+                    }
+                }
                 return true;
             }
         }
@@ -397,6 +407,8 @@ export default class Game {
         this.initPlayer();
         this.enemySpwanTimer = 0;
         this.stageResetTimer = (getFPS() || 60) * 3;
+        this.score = 0;
+        this.highScoreColor = WHITE;
     }
     update() {
         this.doBackground();
@@ -455,11 +467,17 @@ export default class Game {
         }
         this.drawDebris();
         this.drawExplosions();
+        this.drawHud();
+    }
+    private drawHud() {
         drawFPS(10, 10);
         drawText("Press C to fire", 10, 30, 20, WHITE);
         drawText(`Bullets: ${this.bullets.size}`, 10, 50, 20, WHITE);
         drawText(`Fighters: ${this.fighters.size}`, 10, 70, 20, WHITE);
+        drawText(`Score: ${this.score}`, getScreenWidth() - 10, 10, 20, WHITE, "right");
+        drawText(`High Score: ${this.highScore}`, getScreenWidth() - 10, 30, 20, this.highScoreColor, "right");
     }
+
     private drawBackground() {
         if (!this.backgroundTexture) {
             throw new Error("Background texture is not loaded");

@@ -146,7 +146,7 @@ export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: 
 
 export enum BlendMode {
     None,
-    Additive,
+    Add,
 }
 export function setBlendMode(mode: BlendMode) {
     const { gl } = context;
@@ -154,8 +154,9 @@ export function setBlendMode(mode: BlendMode) {
         case BlendMode.None:
             gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             break;
-        case BlendMode.Additive:
-            gl.blendFunc(gl.ONE, gl.ONE);
+        case BlendMode.Add:
+            gl.blendFunc(gl.SRC_ALPHA, gl.DST_ALPHA);
+            gl.pixelStorei
             break;
     }
 }
@@ -274,9 +275,9 @@ export function drawText(content: string, x: number, y: number, size: number, co
         gl.bindTexture(gl.TEXTURE_2D, textures[i].tex);
         gl.uniform1i(cacheUniformLocation(gl, program, `u_texture${i}`), i);
     }
-    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [x, y, 0]));
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, color, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [x, y, 0]));
     gl.uniform2fv(cacheUniformLocation(gl, program, "u_unitRange"), [textures[0].width, textures[0].height]);
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
@@ -340,13 +341,16 @@ export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, c
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, texture.tex);
     gl.uniform1i(cacheUniformLocation(gl, program, `u_texture0`), 0);
-    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [0, 0, 0]));
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, color, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [0, 0, 0]));
 
     gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
 
 }
+const c = vec4.create();
+const m = mat4.create();
+
 export function drawLine(x1: number, y1: number, x2: number, y2: number, color: vec4) {
     const i = lineCount * 4 * 3;
     linePositions[i + 0] = x1;
@@ -412,9 +416,9 @@ function flushLines() {
     gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 4 * 4, 0);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, lineIndices, gl.DYNAMIC_DRAW);
-    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), WHITE, 1 / 255));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(mat4.create(), 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
-    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(mat4.create(), [0, 0, 0]));
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(c, WHITE, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, mat4.fromTranslation(m, [0, 0, 0]));
     gl.drawElements(gl.TRIANGLES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
 }
 export function getFPS(): number {

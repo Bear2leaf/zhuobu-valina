@@ -253,7 +253,7 @@ export default class Game {
                 y: y + (rand() % 32) - (rand() % 32),
                 dx: (rand() % 10) - (rand() % 10),
                 dy: (rand() % 10) - (rand() % 10),
-                color: vec4.fromValues(1, 1, 1, 255)
+                color: vec4.fromValues(0, 0, 0, 0)
             }
             explosion.dx /= 10;
             explosion.dy /= 10;
@@ -458,7 +458,7 @@ export default class Game {
         }
     }
     private drawExplosions() {
-        setBlendMode(BlendMode.Additive);
+        setBlendMode(BlendMode.Add);
         for (const explosion of this.explosions) {
             blit(this.explosionTexture, explosion.x, explosion.y, explosion.color);
         }

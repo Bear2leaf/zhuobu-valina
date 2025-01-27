@@ -5,6 +5,7 @@ import Game from "./Game";
 import { calculateSlope, getAngle } from "./utils";
 
 export default class Player extends Entity {
+    radius: number = 24
     initPlayer({ entities }: Game) {
 
         const player = this;
@@ -84,6 +85,7 @@ export default class Player extends Entity {
         calculateSlope(mouse.x, mouse.y, this.x, this.y, b);
         b.dx *= 16;
         b.dy *= 16;
+        b.side = Side.SIDE_PLAYER;
         this.reload = 16;
     }
     private fireDonkUzi(game: Game) {
@@ -98,6 +100,7 @@ export default class Player extends Entity {
         calculateSlope(mouse.x, mouse.y, this.x, this.y, b);
         b.dx *= 16;
         b.dy *= 16;
+        b.side = Side.SIDE_PLAYER;
         this.reload = 4;
 
     }
@@ -123,6 +126,7 @@ export default class Player extends Entity {
             calculateSlope(destX, destY, bullet.x, bullet.y, bullet);
             bullet.dx *= 16;
             bullet.dy *= 16;
+            bullet.side = Side.SIDE_PLAYER;
             game.bullets.add(bullet);
         }
         this.reload = getFPS() * 0.75;

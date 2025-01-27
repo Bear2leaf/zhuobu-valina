@@ -1,6 +1,7 @@
 import { vec4 } from "gl-matrix"
 import { Side, Weapon } from "./defs"
 import { Texture, WHITE } from "../context"
+import Game from "./Game"
 
 export default class Entity {
     side: number
@@ -33,13 +34,11 @@ export default class Entity {
         this.texture = null
         this.color = WHITE
     }
-    tick(): void {
+    tick(game: Game): void {
 
     }
-    touch(other: Entity): void {
-
-    }
-    die(): void {
+    touch?: (other: Entity, game: Game) => void
+    die(game: Game): void {
 
     }
 }

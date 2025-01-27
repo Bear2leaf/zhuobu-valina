@@ -1,11 +1,9 @@
 import { getScreenHeight, getScreenWidth } from "../context"
 
 
-export function SCREEN_WIDTH() { return getScreenWidth() }
-export function SCREEN_HEIGHT() { return getScreenHeight() }
 
-export function ARENA_WIDTH() { return (SCREEN_WIDTH() * 5) }
-export function ARENA_HEIGHT() { return (SCREEN_HEIGHT() * 5) }
+export function ARENA_WIDTH() { return (getScreenWidth() * 5) }
+export function ARENA_HEIGHT() { return (getScreenHeight() * 5) }
 
 export const MAX_NAME_LENGTH = 32
 export const MAX_LINE_LENGTH = 1024
@@ -14,8 +12,6 @@ export const MAX_SCORE_NAME_LENGTH = 16
 
 export const GRID_SIZE = 64
 
-export function GRID_RENDER_WIDTH() { return (SCREEN_WIDTH() / GRID_SIZE); }
-export function GRID_RENDER_HEIGHT() { return ((SCREEN_HEIGHT() / GRID_SIZE) + 1); }
 
 export const MAX_KEYBOARD_KEYS = 350
 export const MAX_MOUSE_BUTTONS = 6
@@ -24,7 +20,7 @@ export const MAX_SND_CHANNELS = 16
 
 export const NUM_HIGHSCORES = 8
 
-export const PLAYER_SPEED = 120
+export const PLAYER_SPEED = 6
 
 export const GLYPH_WIDTH = 18
 export const GLYPH_HEIGHT = 29

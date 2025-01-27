@@ -557,7 +557,7 @@ export function isKeyUp(key: KeyboardKey): boolean {
 }
 export function loadTexture(url: string): Texture {
     const img = images.get(url);
-    if (!img) throw new Error("image not found");
+    if (!img) throw new Error("image not found: " + url);
     return createTexture(img);
 }
 export function loadSound(name: string) {

@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix";
-import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, blitRotated, clearBackground, drawFPS, drawText, getFrameTime, getMouse, getScreenHeight, getScreenWidth, getTime, initContext, initDrawobjects, initPrograms, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
+import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, blitRotated, clearBackground, drawFPS, drawText, endDrawing, getFrameTime, getMouse, getScreenHeight, getScreenWidth, getTime, GREEN, initContext, initDrawobjects, initPrograms, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
 import Device from "../device/Device";
 import Entity from "./Entity";
 import { Effect, Highscores, Mouse } from "./structs";
@@ -83,7 +83,13 @@ export default class Game {
 
     }
     private drawWeaponInfo(name: string, weapon: Weapon, x: number, y: number) {
-        drawText(`${name}: ${this.ammo[weapon]}`, x, y, 20, WHITE);
+        let color = WHITE;
+        if (this.player.weaponType === weapon) {
+            color = GREEN;
+        } else {
+            color = WHITE;
+        }
+        drawText(`${name}: ${this.ammo[weapon]}`, x, y, 20, color);
     }
     private drawEntities() {
         for (const entity of this.entities) {
@@ -136,6 +142,7 @@ export default class Game {
     }
     doInput() {
         const { left, right, x, y, wheel } = getMouse();
+        console.log(wheel)
         this.mouse.wheel = wheel;
         this.mouse.x = x;
         this.mouse.y = y;
@@ -171,6 +178,7 @@ export default class Game {
     }
     presentScene() {
 
+        endDrawing();
     }
 
 }

@@ -305,13 +305,13 @@ export function beginDrawing() {
     context.frameTime = (now - context.time) / 1000;
     context.fps = Math.floor(1 / context.frameTime);
     context.time = now;
-    context.mouse.wheel = 0;
     lineCount = 0;
     linePositions.fill(0);
     lineColors.fill(0);
     lineIndices.fill(0);
 }
 export function endDrawing() {
+    context.mouse.wheel = 0;
     flushLines();
 }
 
@@ -637,6 +637,7 @@ export enum KeyboardKey {
 }
 export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);
+export const GREEN = vec4.fromValues(0, 255, 0, 255);
 export const BLACK = vec4.fromValues(0, 0, 0, 255);
 export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
 export const WHITE = vec4.fromValues(255, 255, 255, 255);

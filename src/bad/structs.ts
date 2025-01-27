@@ -4,25 +4,6 @@ import Entity from "./Entity";
 
 
 
-export type Mouse = {
-	x: number
-	y: number
-	left: boolean
-	right: boolean
-	middle: boolean
-	wheel: number
-};
-
-export type Effect = {
-	x: number
-	y: number
-	dx: number
-	dy: number
-	life: number
-	color: vec4
-	texture: Texture
-};
-
 
 export type Highscore = {
 	name: string,

@@ -1,4 +1,5 @@
-import { getFPS, getScreenWidth, KeyboardKey, loadTexture, rand } from "../context";
+import { vec4 } from "gl-matrix";
+import { getFPS, getScreenWidth, KeyboardKey, rand, WHITE } from "../context";
 import { PLAYER_SPEED, Side, Weapon } from "./defs";
 import Entity from "./Entity";
 import Game from "./Game";
@@ -6,10 +7,12 @@ import { calculateSlope, getAngle } from "./utils";
 
 export default class Player extends Entity {
     radius: number = 24
-    initPlayer({ entities }: Game) {
-
+    initPlayer({ entities, donkTexture }: Game) {
+        if (!donkTexture) {
+            throw new Error("donkTexture is not defined");
+        }
         const player = this;
-        player.texture = loadTexture("image/donk");
+        player.texture = donkTexture;
         player.side = Side.SIDE_PLAYER;
         player.w = player.texture.width;
         player.h = player.texture.height;
@@ -19,8 +22,15 @@ export default class Player extends Entity {
         entities.add(player);
     }
     doPlayer(game: Game) {
-        const { keyboard, mouse, ammo } = game;
+        const { keyboard, mouse, ammo, camera } = game;
         const player = this;
+        if (player.health <= 0) {
+            game.introTimeout = Math.max(0, game.introTimeout - 1);
+            if (game.introTimeout === 0) {
+                game.intro = true;
+            }
+            return;
+        }
         player.dx *= 0.85;
         player.dy *= 0.85;
         if (keyboard.has(KeyboardKey.KEY_W)) {
@@ -35,7 +45,7 @@ export default class Player extends Entity {
         if (keyboard.has(KeyboardKey.KEY_D)) {
             player.dx = PLAYER_SPEED;
         }
-        player.angle = getAngle(player.x, player.y, mouse.x, mouse.y);
+        player.angle = getAngle(player.x - camera[0], player.y - camera[1], mouse.x, mouse.y);
         if (player.reload === 0 && ammo[player.weaponType] > 0 && mouse.left) {
             this.fireDonkBullet(game);
             ammo[player.weaponType]--;
@@ -73,31 +83,39 @@ export default class Player extends Entity {
                 break
         }
     }
-    private fireDonkPistol(game: Game) {
-        const { mouse, donkBulletTexture, bullets } = game;
+    private createDonkBullet(game: Game) {
+        const { mouse, bulletTexture, bullets } = game;
+        if (!bulletTexture) {
+            throw new Error("bulletTexture is not defined");
+        }
         const b = new Entity();
         bullets.add(b);
         b.x = this.x;
         b.y = this.y;
-        b.texture = donkBulletTexture;
+        b.texture = bulletTexture;
+        b.w = b.texture.width;
+        b.h = b.texture.height;
+        b.texture = bulletTexture;
         b.health = getFPS() * 2;
         b.angle = this.angle;
-        calculateSlope(mouse.x, mouse.y, this.x, this.y, b);
+        b.side = Side.SIDE_PLAYER;
+        b.color = vec4.clone(WHITE);
+        b.color[0] = 128;
+        return b;
+
+    }
+    private fireDonkPistol(game: Game) {
+        const { mouse, bulletTexture, bullets } = game;
+        const b = this.createDonkBullet(game);
+        calculateSlope(mouse.x, mouse.y, b.x - game.camera[0], b.y - game.camera[1], b);
         b.dx *= 16;
         b.dy *= 16;
-        b.side = Side.SIDE_PLAYER;
         this.reload = 16;
     }
     private fireDonkUzi(game: Game) {
-        const { mouse, donkBulletTexture, bullets } = game;
-        const b = new Entity();
-        bullets.add(b);
-        b.x = this.x;
-        b.y = this.y;
-        b.texture = donkBulletTexture
-        b.health = getFPS() * 2;
-        b.angle = this.angle;
-        calculateSlope(mouse.x, mouse.y, this.x, this.y, b);
+        const { mouse, bulletTexture, bullets } = game;
+        const b = this.createDonkBullet(game);
+        calculateSlope(mouse.x, mouse.y, this.x - game.camera[0], this.y - game.camera[1], b);
         b.dx *= 16;
         b.dy *= 16;
         b.side = Side.SIDE_PLAYER;
@@ -105,31 +123,21 @@ export default class Player extends Entity {
 
     }
     private fireDonkShotgun(game: Game) {
-        const {mouse, donkBulletTexture} = game;
+        const { mouse, bulletTexture } = game;
         const slope = { dx: 0, dy: 0 };
-        calculateSlope(mouse.x, mouse.y, this.x, this.y, slope);
+        calculateSlope(mouse.x, mouse.y, this.x - game.camera[0], this.y - game.camera[1], slope);
         slope.dx = this.x + (slope.dx * 128);
         slope.dy = this.y + (slope.dy * 128);
-        let destX=0, destY=0;
+        let destX = 0, destY = 0;
         for (let i = 0; i < 8; i++) {
-            const bullet = new Entity();
-            bullet.texture = donkBulletTexture;
-            bullet.x = this.x + rand() % 16 - rand() % 16;
-            bullet.y = this.y + rand() % 16 - rand() % 16;
-            
-            bullet.health = getFPS() * 2;
-            bullet.angle = this.angle;
-            bullet.dx = slope.dx;
-            bullet.dy = slope.dy;
+            const b = this.createDonkBullet(game);
             destX = slope.dx + (rand() % 24 - rand() % 24);
             destY = slope.dy + (rand() % 24 - rand() % 24);
-            calculateSlope(destX, destY, bullet.x, bullet.y, bullet);
-            bullet.dx *= 16;
-            bullet.dy *= 16;
-            bullet.side = Side.SIDE_PLAYER;
-            game.bullets.add(bullet);
+            calculateSlope(destX, destY, b.x, b.y, b);
+            b.dx *= 16;
+            b.dy *= 16;
         }
         this.reload = getFPS() * 0.75;
-        
+
     }
 }

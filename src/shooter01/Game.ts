@@ -101,10 +101,6 @@ export default class Game {
     private highScoreColor = WHITE;
     private outro = false;
     private intro = true;
-    readonly app = {
-        logic: this.update.bind(this),
-        draw: this.draw.bind(this)
-    }
     async load(device: Device) {
         await addText("font/NotoSansSC-Regular.json", device);
         await addText("glsl/line.vert.sk", device);

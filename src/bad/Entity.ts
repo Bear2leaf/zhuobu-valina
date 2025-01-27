@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix"
-import { Side } from "./defs"
+import { Side, Weapon } from "./defs"
 import { Texture, WHITE } from "../context"
 
 export default class Entity {
@@ -14,7 +14,7 @@ export default class Entity {
     health: number
     reload: number
     angle: number
-    weaponType: number
+    weaponType: Weapon
     texture: Texture | null
     color: vec4
     constructor() {

@@ -1,8 +1,6 @@
 import Device from "./Device";
 function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
-    canvas.width = window.innerWidth * window.devicePixelRatio;
-    canvas.height = window.innerHeight * window.devicePixelRatio;
-    return {
+    const info = {
         windowWidth: window.innerWidth,
         windowHeight: window.innerHeight,
         pixelRatio: window.devicePixelRatio,
@@ -19,6 +17,9 @@ function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
         },
         screenTop: 0
     }
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
+    return info;
 }
 export default class BrowserDevice implements Device {
     private readonly windowInfo: WechatMinigame.WindowInfo;

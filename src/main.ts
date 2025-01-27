@@ -24,6 +24,7 @@ export async function start(device: Device) {
     initContext(device);
     initPrograms();
     initDrawobjects();
+    initWindow(0, 0, "");
     game.init();
     function loop() {
         game.prepareScene();

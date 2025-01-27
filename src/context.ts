@@ -121,7 +121,9 @@ function createTexture(img: HTMLImageElement): Texture {
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 1);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
     gl.bindTexture(gl.TEXTURE_2D, null);
     return { tex: texture, width: img.width, height: img.height };
 }
@@ -287,10 +289,9 @@ export function rand() {
 }
 export function initWindow(width: number, height: number, title: string) {
     const { gl, device } = context;
+    gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
-    gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
 
 }
 export function initAudio() {
@@ -320,7 +321,7 @@ export function clearBackground(color: vec4) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 }
 export function drawFPS(x: number, y: number) {
-    drawText(`FPS: ${context.fps}`, x, y, 20, WHITE);
+    drawText(`FPS: ${context.fps}`, x, y, 20, BLUE);
 }
 let text: MTSDFText = null!
 export function drawText(content: string, x: number, y: number, size: number, color: vec4, align: TextAlign = "left") {
@@ -533,7 +534,7 @@ function flushLines() {
     gl.drawElements(gl.TRIANGLES, lineIndices.length, gl.UNSIGNED_SHORT, 0);
 }
 export function getFPS(): number {
-    return context.fps;
+    return Math.floor(context.fps);
 }
 export function getTime(): number {
     return context.time;

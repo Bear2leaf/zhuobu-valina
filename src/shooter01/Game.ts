@@ -534,7 +534,7 @@ export default class Game {
             this.highScoreColor = YELLOW;
         }
     }
-    update() {
+    logic() {
         this.doBackground();
         this.doStarfield();
         this.doPlayer();

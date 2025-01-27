@@ -1,5 +1,5 @@
 import { vec4 } from "gl-matrix";
-import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, blitRotated, clearBackground, drawFPS, drawText, endDrawing, getFrameTime, getMouse, getScreenHeight, getScreenWidth, getTime, GREEN, initContext, initDrawobjects, initPrograms, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
+import { addAudioBuffer, addImage, addText, beginDrawing, BLACK, blitRectRect, blitRotated, clearBackground, drawFPS, drawText, endDrawing, getFrameTime, getMouse, getScreenHeight, getScreenWidth, getTime, GREEN, initContext, initDrawobjects, initPrograms, isKeyDown, isKeyUp, KeyboardKey, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
 import Device from "../device/Device";
 import Entity from "./Entity";
 import { Effect, Highscores, Mouse } from "./structs";
@@ -10,6 +10,7 @@ import Player from "./Player";
 export default class Game {
     private score = 0;
     private targetterTexture: Texture | null = null;
+    private gridTexture: Texture | null = null;
     donkBulletTexture: Texture | null = null;
     readonly entities = new Set<Entity>();
     readonly bullets = new Set<Entity>();
@@ -49,10 +50,12 @@ export default class Game {
         await addImage("image/targetter", device);
         await addImage("image/donk", device);
         await addImage("image/donkBullet", device);
+        await addImage("image/grid", device);
     }
     init() {
         this.targetterTexture = loadTexture("image/targetter");
         this.donkBulletTexture = loadTexture("image/donkBullet");
+        this.gridTexture = loadTexture("image/grid");
         this.initPlayer()
     }
     private initPlayer() {
@@ -117,6 +120,7 @@ export default class Game {
 
     }
     draw(): void {
+        this.drawGrid();
         this.drawEntities()
         this.drawBullets()
         this.drawHud();
@@ -125,6 +129,9 @@ export default class Game {
         beginDrawing();
         clearBackground(normalizeColor(BLACK));
 
+    }
+    private drawGrid() {
+        blitRectRect(this.gridTexture, { x: 0, y: 0, width: getScreenWidth(), height: getScreenHeight() }, { x: 0, y: 0, width: getScreenWidth(), height: getScreenHeight() });
     }
     private doMouseButtonDown(button: number) {
         if (button === 0) {

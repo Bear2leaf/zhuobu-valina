@@ -32,6 +32,9 @@ export default class MinigameDevice implements Device {
             this.onMouseUp(2);
             this.onMouseUp(1);
         });
+        wx.onWheel((e) => {
+            this.onMouseWheel(e.deltaY);
+        });
     }
     getWindowInfo(): WechatMinigame.WindowInfo {
         return this.windowInfo
@@ -79,6 +82,9 @@ export default class MinigameDevice implements Device {
         throw new Error("Method not implemented.");
     }
     onMouseUp(button: number): void {
+        throw new Error("Method not implemented.");
+    }
+    onMouseWheel(delta: number): void {
         throw new Error("Method not implemented.");
     }
     loadText(url: string): Promise<string> {

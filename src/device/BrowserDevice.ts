@@ -37,7 +37,12 @@ export default class BrowserDevice implements Device {
         window.addEventListener("mousemove", (e) => this.onMouseMove(e.clientX, e.clientY));
         window.addEventListener("mousedown", (e) => this.onMouseDown(e.button));
         window.addEventListener("mouseup", (e) => this.onMouseUp(e.button));
+        window.addEventListener("contextmenu", (e) => e.preventDefault());
+        window.addEventListener("wheel", (e) => this.onMouseWheel(e.deltaY));
 
+    }
+    onMouseWheel(delta: number): void {
+        throw new Error("Method not implemented.");
     }
     onResize: () => void = () => {
         throw new Error("Method not implemented.");
@@ -105,6 +110,8 @@ declare const window: {
     addEventListener(type: "mousemove", listener: (e: { clientX: number, clientY: number }) => void): void;
     addEventListener(type: "mousedown", listener: (e: { button: number }) => void): void;
     addEventListener(type: "mouseup", listener: (e: { button: number }) => void): void;
+    addEventListener(type: "contextmenu", listener: (e: { preventDefault(): void }) => void): void;
+    addEventListener(type: "wheel", listener: (e: { deltaY: number }) => void): void;
 }
 declare const performance: {
     now: () => number;

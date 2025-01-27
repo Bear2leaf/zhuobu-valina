@@ -269,6 +269,9 @@ export function initContext(device: Device) {
         context.mouse.x = x;
         context.mouse.y = y;
     }
+    device.onMouseWheel = (delta) => {
+        context.mouse.wheel += delta;
+    }
     context.device = device;
     context.gl = device.getCanvasGL().getContext('webgl2', {}) as WebGL2RenderingContext;
     const image = images.get(`font/NotoSansSC-Regular`);
@@ -301,6 +304,7 @@ export function beginDrawing() {
     context.frameTime = (now - context.time) / 1000;
     context.fps = Math.floor(1 / context.frameTime);
     context.time = now;
+    context.mouse.wheel = 0;
     lineCount = 0;
     linePositions.fill(0);
     lineColors.fill(0);
@@ -396,7 +400,7 @@ export function drawTexture(texture: Texture, src: Rectangle, dest: Rectangle, c
     positions[9] = p3[0];
     positions[10] = p3[1];
 
-    
+
 
 
     texcoords[0] = src.x / texture.width;
@@ -561,13 +565,15 @@ export function loadSound(name: string) {
     const [instrument, note] = name.split("#");
     audioBuffers.set(name, synth.sound(instrument.split(",").map(o => parseInt(o ? o : "0"), 10), note ? parseInt(note) : undefined));
 }
-export function getMouse(mouse: { x: number, y: number, left: boolean, right: boolean, middle: boolean, wheel: number }) {
-    mouse.x = context.mouse.x;
-    mouse.y = context.mouse.y;
-    mouse.left = context.mouse.left;
-    mouse.right = context.mouse.right;
-    mouse.middle = context.mouse.middle;
-    mouse.wheel = context.mouse.wheel;
+export function getMouse() {
+    return {
+        x: context.mouse.x,
+        y: context.mouse.y,
+        left: context.mouse.left,
+        right: context.mouse.right,
+        middle: context.mouse.middle,
+        wheel: context.mouse.wheel,
+    }
 }
 export function playMusic(name: string) {
     const { audio } = context;

@@ -28,8 +28,8 @@ export async function start(device: Device) {
     function loop() {
         game.prepareScene();
         game.doInput();
-        game.app.logic();
-        game.app.draw();
+        game.logic();
+        game.draw();
         game.presentScene();
         requestAnimationFrame(loop);
     };

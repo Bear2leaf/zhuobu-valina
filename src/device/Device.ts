@@ -13,4 +13,5 @@ export default interface Device {
   loadText(url: string): Promise<string>;
   loadImage(url: string): Promise<HTMLImageElement>;
   loadBuffer(url: string): Promise<ArrayBuffer>;
+  onMouseWheel(delta: number): void;
 }

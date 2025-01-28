@@ -14,6 +14,7 @@
     "minigame-api-typings": "^3.8.4"
   },
   "dependencies": {
-    "gl-matrix": "^3.4.3"
+    "gl-matrix": "^3.4.3",
+    "polyline-normals": "^2.0.2"
   }
 }

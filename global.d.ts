@@ -1,4 +1,6 @@
-
+declare module "polyline-normals" {
+    export default function getNormals(points: number[][]): [[number, number], number][];
+}
 declare class HTMLCanvasElement {
     id: string;
     width: number;

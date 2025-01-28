@@ -3,7 +3,7 @@ import Device from "./device/Device";
 import { Convert, MTSDFFontData } from "./mtsdf/MTSDFFontData";
 import { MTSDFText } from "./mtsdf/MTSDFText";
 import { pl_synth_init } from "./synth/pl_synth";
-
+import getNormals from "polyline-normals"
 const _attributeLocs: WeakMap<WebGLProgram, Record<string, number>> = new WeakMap();
 const _uniformLocs: WeakMap<WebGLProgram, Record<string, WebGLUniformLocation>> = new WeakMap();
 const _mtsdfTexts: Record<string, MTSDFText> = {};
@@ -465,19 +465,64 @@ function getCurrentMatrix() {
 const c = vec4.create();
 const m = mat4.create();
 
-export function drawLine(x1: number, y1: number, x2: number, y2: number, color: vec4) {
+export function drawPolyLines(points: vec2[], color: vec4, thickness = 1) {
+    const { gl, lineDrawobject } = context;
+    const normals = getNormals(points.map(p => [p[0], p[1]]));
+    const positions = new Float32Array(normals.reduce<number[]>((acc, n, i) => {
+        const p = points[i];
+        acc.push(p[0] + n[0][0] * thickness / 2 * n[1], p[1] + n[0][1] * thickness / 2 * n[1], 0);
+        acc.push(p[0] - n[0][0] * thickness / 2 * n[1], p[1] - n[0][1] * thickness / 2 * n[1], 0);
+        return acc;
+    }, []));
+    const colors = new Float32Array(positions.length / 3 * 4);
+    colors.fill(1);
+    const indices = new Uint16Array((points.length - 1) * 6);
+    for (let i = 0; i < points.length - 1; i++) {
+        const k = i * 6;
+        const j = i * 2;
+        indices[k + 0] = j + 0;
+        indices[k + 1] = j + 1;
+        indices[k + 2] = j + 2;
+        indices[k + 3] = j + 2;
+        indices[k + 4] = j + 1;
+        indices[k + 5] = j + 3;
+    }
+    const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = lineDrawobject;
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+    const posLoc = cacheAttributeLocation(gl, program, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 4 * 3, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo1);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.DYNAMIC_DRAW);
+    const colorLoc = cacheAttributeLocation(gl, program, "a_color");
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 4 * 4, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.DYNAMIC_DRAW);
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, getCurrentMatrix());
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+
+}
+
+export function drawLine(x1: number, y1: number, x2: number, y2: number, color: vec4, thickness = 1) {
     const i = lineCount * 4 * 3;
-    linePositions[i + 0] = x1;
-    linePositions[i + 1] = y1;
+    const normals = getNormals([[x1, y1], [x2, y2]]);
+    linePositions[i + 0] = x1 + normals[0][0][0] * thickness / 2 * normals[0][1];
+    linePositions[i + 1] = y1 + normals[0][0][1] * thickness / 2 * normals[0][1];
     linePositions[i + 2] = 0;
-    linePositions[i + 3] = x2;
-    linePositions[i + 4] = y2;
+    linePositions[i + 3] = x1 - normals[0][0][0] * thickness / 2 * normals[0][1];
+    linePositions[i + 4] = y1 - normals[0][0][1] * thickness / 2 * normals[0][1];
     linePositions[i + 5] = 0;
-    linePositions[i + 6] = x2;
-    linePositions[i + 7] = y2 + 2;
+    linePositions[i + 6] = x2 + normals[0][0][0] * thickness / 2 * normals[0][1];
+    linePositions[i + 7] = y2 + normals[0][0][1] * thickness / 2 * normals[0][1];
     linePositions[i + 8] = 0;
-    linePositions[i + 9] = x1;
-    linePositions[i + 10] = y1 + 2;
+    linePositions[i + 9] = x2 - normals[0][0][0] * thickness / 2 * normals[0][1];
+    linePositions[i + 10] = y2 - normals[0][0][1] * thickness / 2 * normals[0][1];
     linePositions[i + 11] = 0;
     const j = lineCount * 4 * 4;
     lineColors[j + 0] = color[0] / 255;
@@ -500,8 +545,8 @@ export function drawLine(x1: number, y1: number, x2: number, y2: number, color: 
     lineIndices[k + 0] = lineCount * 4 + 0;
     lineIndices[k + 1] = lineCount * 4 + 1;
     lineIndices[k + 2] = lineCount * 4 + 2;
-    lineIndices[k + 3] = lineCount * 4 + 0;
-    lineIndices[k + 4] = lineCount * 4 + 2;
+    lineIndices[k + 3] = lineCount * 4 + 2;
+    lineIndices[k + 4] = lineCount * 4 + 1;
     lineIndices[k + 5] = lineCount * 4 + 3;
     /**
      * 0........1

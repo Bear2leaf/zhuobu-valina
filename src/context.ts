@@ -319,7 +319,7 @@ export function endDrawing() {
 
 export function clearBackground(color: vec4) {
     const { gl } = context;
-    gl.clearColor(color[0], color[1], color[2], color[3]);
+    gl.clearColor(color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255);
     gl.clear(gl.COLOR_BUFFER_BIT);
 }
 export function drawFPS(x: number, y: number) {
@@ -602,6 +602,11 @@ export function isKeyDown(key: KeyboardKey): boolean {
 export function isKeyUp(key: KeyboardKey): boolean {
     return !context.keyboard.has(key);
 }
+export function loadText(name: string): string {
+    const text = texts.get(name);
+    if (!text) throw new Error("text not found");
+    return text;
+}
 export function loadTexture(url: string): Texture {
     const img = images.get(url);
     if (!img) throw new Error("image not found: " + url);
@@ -678,9 +683,11 @@ export enum KeyboardKey {
     KEY_RIGHT = 39,
     KEY_UP = 38,
     KEY_W = 87,
+    KEY_I = 73,
     KEY_A = 65,
     KEY_S = 83,
     KEY_D = 68,
+    KEY_SPACE = 32,
 }
 export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);
@@ -689,3 +696,4 @@ export const BLACK = vec4.fromValues(0, 0, 0, 255);
 export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
 export const WHITE = vec4.fromValues(255, 255, 255, 255);
 export const RED = vec4.fromValues(255, 0, 0, 255);
+export const LIGHTBLUE = vec4.fromValues(128, 192, 255, 255);  

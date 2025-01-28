@@ -3,7 +3,7 @@
         "strict": true,
         "module": "ESNext",
         "target": "ES2015",
-        "lib": ["ES2016"],
+        "lib": ["ES2015"],
         "types": ["minigame-api-typings" ,"./global.d.ts"],
         "moduleResolution": "bundler",
     }

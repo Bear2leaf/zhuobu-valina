@@ -43,25 +43,25 @@ export default class BrowserDevice implements Device {
 
     }
     onMouseWheel(delta: number): void {
-        throw new Error("Method not implemented.");
+        
     }
     onResize: () => void = () => {
-        throw new Error("Method not implemented.");
+        
     };
     onKeyUp = (key: number) => {
-        throw new Error("Method not implemented.");
+        
     }
     onKeyDown = (key: number) => {
-        throw new Error("Method not implemented.");
+        
     }
     onMouseMove(x: number, y: number): void {
-        throw new Error("Method not implemented.");
+        
     }
     onMouseDown(button: number): void {
-        throw new Error("Method not implemented.");
+        
     }
     onMouseUp(button: number): void {
-        throw new Error("Method not implemented.");
+        
     }
     getCanvasGL(): HTMLCanvasElement {
         return this.canvasGL;

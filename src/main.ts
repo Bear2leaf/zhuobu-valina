@@ -1,4 +1,4 @@
-import Game from "./shooter01/Game.js";
+import Game from "./ppp/Game.js";
 import { addAudioBuffer, addImage, addText, initContext, initDrawobjects, initPrograms, initWindow } from "./context.js";
 import Device from "./device/Device.js";
 export async function mainH5() {

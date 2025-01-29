@@ -1,15 +1,16 @@
 import { vec2 } from "gl-matrix";
 import { addImage, addText, beginDrawing, blit, clearBackground, endDrawing, getScreenHeight, getScreenWidth, isKeyDown, isKeyUp, KeyboardKey, LIGHTBLUE, loadText, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
 import Device from "../device/Device";
-import { MAP_HEIGHT, MAP_RENDER_HEIGHT, MAP_RENDER_WIDTH, MAP_WIDTH, MAX_TILES, PLAYER_MOVE_SPEED, TILE_SIZE } from "./defs";
+import { EntityFlags, MAP_HEIGHT, MAP_RENDER_HEIGHT, MAP_RENDER_WIDTH, MAP_WIDTH, MAX_TILES, PLATFORM_SPEED, PLAYER_MOVE_SPEED, TILE_SIZE } from "./defs";
 import Entity from "./Entity";
+import { calculateSlope } from "../bad/utils";
 
 export default class Game {
+    readonly entities = new Set<Entity>();
     readonly camera: vec2 = vec2.create();
     readonly map: number[][] = [];
     private readonly tiles: Texture[] = [];
     private readonly keyboard = new Set<KeyboardKey>();
-    private readonly entities = new Set<Entity>();
     private readonly player = new Entity();
     private pete: [Texture, Texture] = [null!, null!];
     async load(device: Device) {
@@ -25,17 +26,80 @@ export default class Game {
         await addImage("image/pete01", device);
         await addImage("image/pete02", device);
         await addImage("image/platform", device);
+        await addImage("image/block", device);
         await addText("data/map01.dat", device);
+        await addText("data/ents01.dat", device);
         for (let i = 1; i < MAX_TILES; i++) {
             await addImage(`image/tile${i}`, device);
-
         }
 
     }
     init() {
         this.initMap()
         this.initPlayer();
+        this.loadEnts();
     }
+    private loadEnts() {
+        const lines = loadText("data/ents01.dat").split("\n").map((line) => line.trim());
+        for (const line of lines) {
+            const attr = line.split(" ").map((s) => s);
+            if (attr[0] === "BLOCK") {
+                const [_, x, y] = attr;
+                this.initBlock(x, y);
+            } else if (attr[0] === "PLATFORM") {
+                const [_, sx, sy, ex, ey] = attr;
+                this.initPlatform(sx, sy, ex, ey);
+            }
+        }
+    }
+    private initPlatform(sx: string, sy: string, ex: string, ey: string) {
+        const ent = new Entity();
+        ent.x = parseInt(sx);
+        ent.y = parseInt(sy);
+        ent.sx = parseInt(sx);
+        ent.sy = parseInt(sy);
+        ent.ex = parseInt(ex);
+        ent.ey = parseInt(ey);
+        ent.tick = function (game) {
+            if (Math.abs(this.x - this.sx) < PLATFORM_SPEED && Math.abs(this.y - this.sy) < PLATFORM_SPEED)
+                {
+                    calculateSlope(this.ex, this.ey, this.x, this.y, this);
+            
+                    this.dx *= PLATFORM_SPEED;
+                    this.dy *= PLATFORM_SPEED;
+                }
+            
+                if (Math.abs(this.x - this.ex) < PLATFORM_SPEED && Math.abs(this.y - this.ey) < PLATFORM_SPEED)
+                {
+                    calculateSlope(this.sx, this.sy, this.x, this.y, this);
+            
+                    this.dx *= PLATFORM_SPEED;
+                    this.dy *= PLATFORM_SPEED;
+                }
+        }
+        ent.texture = loadTexture(`image/platform`);
+        if (!ent.texture) {
+            throw new Error(`ent.texture is null: platform`);
+        }
+        ent.w = ent.texture.width;
+        ent.h = ent.texture.height;
+        ent.flags = EntityFlags.EF_SOLID + EntityFlags.EF_WEIGHTLESS + EntityFlags.EF_PUSH;
+        this.entities.add(ent);
+    }
+    private initBlock(x: string, y: string) {
+        const ent = new Entity();
+        ent.x = parseInt(x);
+        ent.y = parseInt(y);
+        ent.texture = loadTexture(`image/block`);
+        if (!ent.texture) {
+            throw new Error(`ent.texture is null: block`);
+        }
+        ent.w = ent.texture.width;
+        ent.h = ent.texture.height;
+        ent.flags = EntityFlags.EF_SOLID + EntityFlags.EF_WEIGHTLESS;
+        this.entities.add(ent);
+    }
+
     private initPlayer() {
         const player = this.player;
         this.pete[0] = loadTexture("image/pete01");
@@ -51,8 +115,20 @@ export default class Game {
     }
     private doEntities() {
         for (const entity of this.entities) {
+            if (entity.tick) {
+                entity.tick(this);
+            }
             entity.move(this);
         }
+        for (const entity of this.entities) {
+            if (entity.riding) {
+                entity.x += entity.riding.dx;
+                entity.push(this, entity.riding.dx, 0);
+            }
+            entity.x = Math.min(Math.max(entity.x, 0), MAP_WIDTH * TILE_SIZE);
+            entity.y = Math.min(Math.max(entity.y, 0), MAP_HEIGHT * TILE_SIZE);
+        }
+
     }
     private doPlayer() {
         this.player.dx = 0;
@@ -67,6 +143,7 @@ export default class Game {
         }
 
         if (this.keyboard.has(KeyboardKey.KEY_I) && this.player.isOnGround) {
+            this.player.riding = null;
             this.player.dy = -20;
         }
 

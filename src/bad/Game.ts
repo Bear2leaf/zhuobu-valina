@@ -77,8 +77,8 @@ export default class Game {
     }
     async load(device: Device) {
         await addText("font/NotoSansSC-Regular.json", device);
-        await addText("glsl/line.vert.sk", device);
-        await addText("glsl/line.frag.sk", device);
+        await addText("glsl/color.vert.sk", device);
+        await addText("glsl/color.frag.sk", device);
         await addText("glsl/text.vert.sk", device);
         await addText("glsl/text.frag.sk", device);
         await addText("glsl/sprite.vert.sk", device);

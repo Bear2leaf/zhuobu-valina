@@ -219,8 +219,8 @@ export function initPrograms() {
         context.spriteProgram = program;
     }
     {
-        const vert = "glsl/line.vert.sk";
-        const frag = "glsl/line.frag.sk";
+        const vert = "glsl/color.vert.sk";
+        const frag = "glsl/color.frag.sk";
         const vertText = texts.get(vert);
         if (!vertText) throw new Error("vertText not loaded");
         const fragText = texts.get(frag);

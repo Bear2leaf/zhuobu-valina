@@ -6,8 +6,8 @@ import { addAtlas, getAtlasImage, initAtlas } from "./atlas";
 export default class Game {
     async load(device: Device) {
         await addText("font/NotoSansSC-Regular.json", device);
-        await addText("glsl/line.vert.sk", device);
-        await addText("glsl/line.frag.sk", device);
+        await addText("glsl/color.vert.sk", device);
+        await addText("glsl/color.frag.sk", device);
         await addText("glsl/text.vert.sk", device);
         await addText("glsl/text.frag.sk", device);
         await addText("glsl/sprite.vert.sk", device);
@@ -35,7 +35,7 @@ export default class Game {
         drawLine(0, 150, 1280, 150, BLUE);
         drawLine(0, 250, 1280, 250, BLUE);
         drawLine(0, 450, 1280, 450, BLUE);
-        
+
         drawTiles();
 
         drawTallSpinner();

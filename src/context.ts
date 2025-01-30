@@ -163,17 +163,17 @@ export function blit(texture: Texture | null, x: number, y: number, color = WHIT
     }
     drawTexture(texture, { x: 0, y: 0, width: texture.width, height: texture.height }, { x: center ? x - texture.width / 2 : x, y: center ? y - texture.height / 2 : y, width: texture.width, height: texture.height }, color, 0);
 }
-export function blitRectRect(texture: Texture | null, src: Rectangle, dest: Rectangle) {
+export function blitRectRect(texture: Texture | null, src: Rectangle, dest: Rectangle, color = WHITE, angle = 0) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, src, dest, WHITE, 0);
+    drawTexture(texture, src, dest, color, angle);
 }
-export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: number) {
+export function blitRect(texture: Texture | null, src: Rectangle, x: number, y: number, angle: number = 0, color = WHITE) {
     if (!texture) {
         throw new Error("Texture is not loaded");
     }
-    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, WHITE, 0);
+    drawTexture(texture, src, { x, y, width: src.width, height: src.height }, color, angle);
 }
 export function blitRotated(texture: Texture | null, x: number, y: number, angle: number, color = WHITE) {
     if (!texture) {
@@ -193,7 +193,6 @@ export function setBlendMode(mode: BlendMode) {
             break;
         case BlendMode.Add:
             gl.blendFunc(gl.SRC_ALPHA, gl.DST_ALPHA);
-            gl.pixelStorei
             break;
     }
 }
@@ -292,7 +291,9 @@ export function rand() {
 export function initWindow(width: number, height: number, title: string) {
     const { gl, device } = context;
     gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
+    gl.scissor(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
     gl.enable(gl.BLEND);
+    gl.enable(gl.SCISSOR_TEST);
     gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
 }
@@ -300,6 +301,41 @@ export function initAudio() {
     const ctx = context.device.createWebAudioContext();
     context.audio = ctx;
     context.synth = pl_synth_init(ctx);
+}
+export function createFrameBuffer(width: number, height: number): Framebuffer {
+    const { gl } = context;
+    const fbo = gl.createFramebuffer();
+    if (!fbo) throw new Error("createFramebuffer failed");
+    const tex = gl.createTexture();
+    if (!tex) throw new Error("createTexture failed");
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    return { fbo, texture: { tex, width, height } };
+}
+export function beginFramebuffer(framebuffer: Framebuffer) {
+    const { gl } = context;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer.fbo);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+    gl.viewport(0, 0, framebuffer.texture.width, framebuffer.texture.height);
+    gl.scissor(0, 0, framebuffer.texture.width, framebuffer.texture.height);
+    fboWidth = framebuffer.texture.width;
+    fboHeight = framebuffer.texture.height;
+}
+export function endFramebuffer() {
+    const { gl, device } = context;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+    gl.viewport(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
+    gl.scissor(0, 0, device.getCanvasGL().width, device.getCanvasGL().height);
+    fboWidth = 0;
+    fboHeight = 0;
 }
 export function beginDrawing() {
     const { device, gl } = context;
@@ -320,7 +356,7 @@ export function endDrawing() {
 export function clearBackground(color: vec4) {
     const { gl } = context;
     gl.clearColor(color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255);
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 }
 export function drawFPS(x: number, y: number) {
     drawText(`FPS: ${context.fps}`, x, y, 20, BLUE);
@@ -590,11 +626,13 @@ export function getTime(): number {
 export function getFrameTime(): number {
     return context.frameTime;
 }
+let fboWidth = 0;
+let fboHeight = 0;
 export function getScreenHeight(): number {
-    return context.device.getWindowInfo().windowHeight
+    return fboHeight || context.device.getWindowInfo().windowHeight
 }
 export function getScreenWidth(): number {
-    return context.device.getWindowInfo().windowWidth
+    return fboWidth || context.device.getWindowInfo().windowWidth
 }
 export function isKeyDown(key: KeyboardKey): boolean {
     return context.keyboard.has(key);
@@ -669,6 +707,11 @@ export type Rectangle = {
     y: number;
     width: number;
     height: number;
+    rotated?: boolean;
+}
+export type Framebuffer = {
+    texture: Texture;
+    fbo: WebGLFramebuffer;
 }
 export type Texture = {
     tex: WebGLTexture;
@@ -693,6 +736,7 @@ export const YELLOW = vec4.fromValues(255, 255, 0, 255);
 export const BLUE = vec4.fromValues(0, 0, 255, 255);
 export const GREEN = vec4.fromValues(0, 255, 0, 255);
 export const BLACK = vec4.fromValues(0, 0, 0, 255);
+export const TRANSPARENT = vec4.fromValues(0, 0, 0, 0);
 export const RAYWHITE = vec4.fromValues(245, 245, 245, 255);
 export const WHITE = vec4.fromValues(255, 255, 255, 255);
 export const RED = vec4.fromValues(255, 0, 0, 255);

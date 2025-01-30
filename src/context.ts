@@ -8,10 +8,10 @@ const _attributeLocs: WeakMap<WebGLProgram, Record<string, number>> = new WeakMa
 const _uniformLocs: WeakMap<WebGLProgram, Record<string, WebGLUniformLocation>> = new WeakMap();
 const _mtsdfTexts: Record<string, MTSDFText> = {};
 type TextAlign = "left" | "center" | "right";
-function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, align: TextAlign): MTSDFText {
-    const key = `${content}_${size}_${align}`;
+function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, align: TextAlign, width: number): MTSDFText {
+    const key = `${content}_${size}_${align}_${width}`;
     if (_mtsdfTexts[key] === undefined) {
-        _mtsdfTexts[key] = new MTSDFText({ font: fontData, text: content, size, align });
+        _mtsdfTexts[key] = new MTSDFText({ font: fontData, text: content, size, align, width });
     }
     return _mtsdfTexts[key];
 }
@@ -361,11 +361,17 @@ export function clearBackground(color: vec4) {
 export function drawFPS(x: number, y: number) {
     drawText(`FPS: ${context.fps}`, x, y, 20, BLUE);
 }
-let text: MTSDFText = null!
-export function drawText(content: string, x: number, y: number, size: number, color: vec4, align: TextAlign = "left") {
+export function calcTextDimensions(content: string, size: number, align: TextAlign, width: number, dimensions: vec2) {
+    const { fontData, } = context;
+    let mtsdfText = cacheMTSDFText(content, fontData, size, align, width);
+    mtsdfText.update({ text: content });
+    dimensions[0] = mtsdfText.width;
+    dimensions[1] = mtsdfText.height;
+}
+export function drawText(content: string, x: number, y: number, size: number, color: vec4, align: TextAlign = "left", width: number = Infinity) {
     const { gl, fontData, textDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = textDrawobject;
-    let mtsdfText = cacheMTSDFText(content, fontData, size, align);
+    let mtsdfText = cacheMTSDFText(content, fontData, size, align, width);
     mtsdfText.update({ text: content });
     const positions = mtsdfText.buffers.position;
     const texcoords = mtsdfText.buffers.uv;
@@ -500,7 +506,58 @@ function getCurrentMatrix() {
 }
 const c = vec4.create();
 const m = mat4.create();
+export function drawRect(x: number, y: number, width: number, height: number, color: vec4, border = 0, borderColor: vec4 = BLACK) {
+    const { gl, lineDrawobject } = context;
+    const positions = new Float32Array([
+        // border
+        x, y, 0,
+        x + width + border * 2, y, 0,
+        x + width + border * 2, y + height + border * 2, 0,
+        x, y + height + border * 2, 0,
+        
+        // content
+        x + border, y + border, 0,
+        x + width + border, y + border, 0,
+        x + width + border, y + height + border, 0,
+        x + border, y + height + border, 0,
+    ]);
+    const colors = new Float32Array([
+        borderColor[0] / 255, borderColor[1] / 255, borderColor[2] / 255, borderColor[3] / 255,
+        borderColor[0] / 255, borderColor[1] / 255, borderColor[2] / 255, borderColor[3] / 255,
+        borderColor[0] / 255, borderColor[1] / 255, borderColor[2] / 255, borderColor[3] / 255,
+        borderColor[0] / 255, borderColor[1] / 255, borderColor[2] / 255, borderColor[3] / 255,
+        color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255,
+        color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255,
+        color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255,
+        color[0] / 255, color[1] / 255, color[2] / 255, color[3] / 255,
 
+    ]);
+    const indices = new Uint16Array([
+        0, 1, 2,
+        0, 2, 3,
+        4, 5, 6,
+        4, 6, 7,
+    ]);
+    const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = lineDrawobject;
+    gl.useProgram(program);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, positions, gl.DYNAMIC_DRAW);
+    const posLoc = cacheAttributeLocation(gl, program, "a_position");
+    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 4 * 3, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, vbo1);
+    gl.bufferData(gl.ARRAY_BUFFER, colors, gl.DYNAMIC_DRAW);
+    const colorLoc = cacheAttributeLocation(gl, program, "a_color");
+    gl.enableVertexAttribArray(colorLoc);
+    gl.vertexAttribPointer(colorLoc, 4, gl.FLOAT, false, 4 * 4, 0);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ebo);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.DYNAMIC_DRAW);
+    gl.uniform4fv(cacheUniformLocation(gl, program, "u_color"), vec4.scale(vec4.create(), color, 1 / 255));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_projection"), false, mat4.ortho(m, 0, getScreenWidth(), getScreenHeight(), 0, -1, 1));
+    gl.uniformMatrix4fv(cacheUniformLocation(gl, program, "u_modelView"), false, getCurrentMatrix());
+    gl.drawElements(gl.TRIANGLES, indices.length, gl.UNSIGNED_SHORT, 0);
+}
 export function drawPolyLines(points: vec2[], color: vec4, thickness = 1) {
     const { gl, lineDrawobject } = context;
     const normals = getNormals(points.map(p => [p[0], p[1]]));

@@ -1,5 +1,5 @@
 import { vec2 } from "gl-matrix";
-import { addImage, addText, beginDrawing, blit, clearBackground, endDrawing, getScreenHeight, getScreenWidth, isKeyDown, isKeyUp, KeyboardKey, LIGHTBLUE, loadText, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
+import { addImage, addText, beginDrawing, blit, BLUE, clearBackground, drawText, endDrawing, getScreenHeight, getScreenWidth, isKeyDown, isKeyUp, KeyboardKey, LIGHTBLUE, loadText, loadTexture, RAYWHITE, Texture, WHITE } from "../context";
 import Device from "../device/Device";
 import { EntityFlags, MAP_HEIGHT, MAP_RENDER_HEIGHT, MAP_RENDER_WIDTH, MAP_WIDTH, MAX_TILES, PLATFORM_SPEED, PLAYER_MOVE_SPEED, TILE_SIZE } from "./defs";
 import Entity from "./Entity";
@@ -11,8 +11,11 @@ export default class Game {
     readonly map: number[][] = [];
     private readonly tiles: Texture[] = [];
     private readonly keyboard = new Set<KeyboardKey>();
-    private readonly player = new Entity();
+    readonly player = new Entity();
     private pete: [Texture, Texture] = [null!, null!];
+    pizzaTotal: number = 0;
+    pizzaFound: number = 0;
+    win: boolean = false;
     async load(device: Device) {
         await addText("font/NotoSansSC-Regular.json", device);
         await addText("glsl/line.vert.sk", device);
@@ -27,6 +30,7 @@ export default class Game {
         await addImage("image/pete02", device);
         await addImage("image/platform", device);
         await addImage("image/block", device);
+        await addImage("image/pizza", device);
         await addText("data/map01.dat", device);
         await addText("data/ents01.dat", device);
         for (let i = 1; i < MAX_TILES; i++) {
@@ -49,8 +53,38 @@ export default class Game {
             } else if (attr[0] === "PLATFORM") {
                 const [_, sx, sy, ex, ey] = attr;
                 this.initPlatform(sx, sy, ex, ey);
+            } else if (attr[0] === "PIZZA") {
+                const [_, x, y] = attr;
+                this.initPizza(x, y);
+                this.pizzaTotal++;
             }
         }
+    }
+    private initPizza(x: string, y: string) {
+        const ent = new Entity();
+        ent.x = parseInt(x);
+        ent.y = parseInt(y);
+        ent.texture = loadTexture(`image/pizza`);
+        if (!ent.texture) {
+            throw new Error(`ent.texture is null: pizza`);
+        }
+        ent.w = ent.texture.width;
+        ent.h = ent.texture.height;
+        ent.flags = EntityFlags.EF_WEIGHTLESS;
+        ent.touch = function (game, other) {
+            if (this.health > 0 && other === game.player) {
+                this.health = 0;
+                game.pizzaFound++;
+                if (game.pizzaFound === game.pizzaTotal) {
+                    game.win = true;
+                }
+            }
+        }
+        ent.tick = function (game) {
+            this.value += 0.1;
+            this.y += Math.sin(this.value);
+        }
+        this.entities.add(ent);
     }
     private initPlatform(sx: string, sy: string, ex: string, ey: string) {
         const ent = new Entity();
@@ -61,21 +95,19 @@ export default class Game {
         ent.ex = parseInt(ex);
         ent.ey = parseInt(ey);
         ent.tick = function (game) {
-            if (Math.abs(this.x - this.sx) < PLATFORM_SPEED && Math.abs(this.y - this.sy) < PLATFORM_SPEED)
-                {
-                    calculateSlope(this.ex, this.ey, this.x, this.y, this);
-            
-                    this.dx *= PLATFORM_SPEED;
-                    this.dy *= PLATFORM_SPEED;
-                }
-            
-                if (Math.abs(this.x - this.ex) < PLATFORM_SPEED && Math.abs(this.y - this.ey) < PLATFORM_SPEED)
-                {
-                    calculateSlope(this.sx, this.sy, this.x, this.y, this);
-            
-                    this.dx *= PLATFORM_SPEED;
-                    this.dy *= PLATFORM_SPEED;
-                }
+            if (Math.abs(this.x - this.sx) < PLATFORM_SPEED && Math.abs(this.y - this.sy) < PLATFORM_SPEED) {
+                calculateSlope(this.ex, this.ey, this.x, this.y, this);
+
+                this.dx *= PLATFORM_SPEED;
+                this.dy *= PLATFORM_SPEED;
+            }
+
+            if (Math.abs(this.x - this.ex) < PLATFORM_SPEED && Math.abs(this.y - this.ey) < PLATFORM_SPEED) {
+                calculateSlope(this.sx, this.sy, this.x, this.y, this);
+
+                this.dx *= PLATFORM_SPEED;
+                this.dy *= PLATFORM_SPEED;
+            }
         }
         ent.texture = loadTexture(`image/platform`);
         if (!ent.texture) {
@@ -117,6 +149,9 @@ export default class Game {
         for (const entity of this.entities) {
             if (entity.tick) {
                 entity.tick(this);
+            }
+            if (entity.health <= 0) {
+                this.entities.delete(entity);
             }
             entity.move(this);
         }
@@ -207,6 +242,13 @@ export default class Game {
     draw() {
         this.drawMap()
         this.drawEntities();
+        this.drawHud();
+    }
+    private drawHud() {
+        drawText(`Pizza: ${this.pizzaFound}/${this.pizzaTotal}`, 10, 10, 20, BLUE);
+        if (this.win) {
+            drawText("You Win!", getScreenWidth() / 2 - 64, getScreenHeight() / 2 - 16, 32, WHITE);
+        }
     }
     private drawEntities() {
         for (const entity of this.entities) {

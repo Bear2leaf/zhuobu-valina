@@ -14,6 +14,8 @@ export default class Entity {
     h: number = 0;
     dx: number = 0;
     dy: number = 0;
+    health: number = 1;
+    value: number = 0;
     isOnGround: boolean = false;
     texture: Texture | null = null;
     flags: EntityFlags = EntityFlags.EF_NONE;
@@ -43,6 +45,7 @@ export default class Entity {
         this.moveToEntities(game, dx, dy);
 
     }
+    touch?(game: Game, other: Entity): void;
     draw({ camera }: Game) {
         blit(this.texture, this.x - camera[0], this.y - camera[1], RAYWHITE);
     }
@@ -77,9 +80,12 @@ export default class Entity {
                 } else if (e.flags & EntityFlags.EF_PUSH) {
                     other.x += e.dx;
                     other.push(game, e.dx, 0);
-    
+
                     other.y += e.dy;
                     other.push(game, 0, e.dy);
+                }
+                if (e.touch) {
+                    e.touch(game, other);
                 }
             }
 

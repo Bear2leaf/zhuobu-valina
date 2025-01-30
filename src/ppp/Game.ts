@@ -39,9 +39,9 @@ export default class Game {
 
     }
     init() {
-        this.initMap()
-        this.initPlayer();
         this.loadEnts();
+        this.initPlayer();
+        this.initMap()
     }
     private loadEnts() {
         const lines = loadText("data/ents01.dat").split("\n").map((line) => line.trim());
@@ -236,8 +236,8 @@ export default class Game {
     }
     logic() {
         this.doPlayer();
-        this.doCamera();
         this.doEntities();
+        this.doCamera();
     }
     draw() {
         this.drawMap()

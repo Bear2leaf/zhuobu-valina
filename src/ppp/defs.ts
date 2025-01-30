@@ -10,7 +10,7 @@ export const MAP_HEIGHT = 20;
 export const PLATFORM_SPEED = 4;
 export const MAP_RENDER_WIDTH = () => Math.ceil(getScreenWidth() / TILE_SIZE);
 export const MAP_RENDER_HEIGHT = () => Math.ceil(getScreenHeight() / TILE_SIZE);
-export const PLAYER_MOVE_SPEED = 8;
+export const PLAYER_MOVE_SPEED = 6;
 
 export enum EntityFlags {
     EF_NONE = 0,

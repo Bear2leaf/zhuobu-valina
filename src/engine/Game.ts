@@ -11,8 +11,13 @@ export default class Game {
     private readonly messages: string[] = [];
     private readonly choices: string[] = [];
     private readonly map = createIslandMap();
+    private readonly regionStory: Map<number, Story> = new Map();
+    private readonly stories: readonly string [] = [
+        "beach",
+        "ocean"
+    ]
     private selection: number = 0;
-    private story: Story = null!
+    private currentRegion = 0;
     async load(device: Device) {
         await addText("font/NotoSansSC-Regular.json", device);
         await addText("glsl/color.vert.sk", device);
@@ -21,6 +26,9 @@ export default class Game {
         await addText("glsl/text.frag.sk", device);
         await addText("glsl/sprite.vert.sk", device);
         await addText("glsl/sprite.frag.sk", device);
+        for (const story of this.stories) {
+            await addText(`story/${story}.txt`, device);
+        }
         await addImage("font/NotoSansSC-Regular", device);
     }
     init() {
@@ -29,15 +37,13 @@ export default class Game {
         this.updateStory(coast);
     }
     private updateStory(currentRegion: number) {
+        this.currentRegion = currentRegion;
         const map = this.map;
-        const neighbors = map.mesh.r_circulate_r([], currentRegion).map((r, i) => `* [You can go to ${i}: ${BiomeColor[map.r_biome[r]]} #region ${r}]Arriving ${BiomeColor[map.r_biome[r]]}`);
-        const randomEvents = new Array(rand() % 3).fill(0).map((_, i) => `* Random Event ${i}`);
-        const content = [
-            `You are now at ${BiomeColor[map.r_biome[currentRegion]]}`,
-            ...randomEvents,
-            ...neighbors
-        ].join("\n");
-        this.story = new Compiler(content).Compile();
+        if (!this.regionStory.has(currentRegion)) {
+            const content = loadText(`story/${BiomeColor[map.r_biome[currentRegion]].toLowerCase()}.txt`);
+            const story = new Compiler(content).Compile();
+            this.regionStory.set(currentRegion, story);
+        }
     }
 
     prepareScene() {
@@ -71,16 +77,24 @@ export default class Game {
         }
     }
     logic() {
-        if (this.story.canContinue) {
-            const message = this.story.Continue();
+        const story = this.regionStory.get(this.currentRegion);
+        if (!story) {
+            throw new Error("story is null");
+        }
+        if (story.canContinue) {
+            const message = story.Continue();
             if (!message) {
                 throw new Error("message is null");
             }
             this.messages.push(message);
-        } else if (this.story.currentChoices.length > 0 && this.choices.length === 0) {
+        } else if (story.currentChoices.length > 0 && this.choices.length === 0) {
 
-            for (let i = 0; i < this.story.currentChoices.length; i++) {
-                this.choices.push(this.story.currentChoices[i].text);
+            for (let i = 0; i < story.currentChoices.length; i++) {
+                this.choices.push(story.currentChoices[i].text);
+            }
+            const neighbors = this.map.mesh.r_circulate_r([], this.currentRegion);
+            for (let i = 0; i < neighbors.length; i++) {
+                this.choices.push(`Go to ${BiomeColor[this.map.r_biome[neighbors[i]]]}`);
             }
         }
         if (this.choices.length !== 0) {
@@ -101,16 +115,14 @@ export default class Game {
         }
         if (this.keyboard.has(KeyboardKey.KEY_RIGHT)) {
             if (this.choices.length !== 0) {
-                const tags = this.story.currentChoices[this.selection].tags;
-                if (tags && tags.length === 1) {
-                    const [type, r] = tags[0].split(" ") as [string, number];
-                    if (type === "region") {
-                        this.updateStory(r);
-                    } else {
-                        throw new Error(`Unknown tag type: ${type}`);
-                    }
+                if (story.currentChoices.length > this.selection) {
+                    story.ChooseChoiceIndex(this.selection);
                 } else {
-                    this.story.ChooseChoiceIndex(this.selection);
+                    const neighbors = this.map.mesh.r_circulate_r([], this.currentRegion);
+                    const regionChoice = this.selection - story.currentChoices.length;
+                    const next = neighbors[regionChoice];
+                    console.log(next)
+                    this.updateStory(next);
                 }
                 this.selection = 0;
                 this.choices.length = 0;
@@ -118,7 +130,7 @@ export default class Game {
             }
         }
         if (this.keyboard.has(KeyboardKey.KEY_LEFT)) {
-            this.story.ResetState();
+            story.ResetState();
             this.selection = 0;
             this.choices.length = 0;
             this.messages.length = 0;

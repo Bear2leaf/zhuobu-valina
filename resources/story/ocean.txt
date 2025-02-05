@@ -1,0 +1,5 @@
+-> start
+=== start ===
+The ocean was a beautiful place to be. The sun was shining, the waves were crashing, and the seagulls were squawking. You was at peace.
++ explore -> start
+* [retire] You just want to rest. -> END

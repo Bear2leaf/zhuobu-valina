@@ -1,12 +1,16 @@
 import { vec2 } from "gl-matrix";
-import { addImage, addText, beginDrawing, beginFramebuffer, BLACK, blit, blitRect, blitRectRect, BLUE, calcTextDimensions, clearBackground, createFrameBuffer, drawFPS, drawLine, drawRect, drawText, endDrawing, endFramebuffer, Framebuffer, getScreenHeight, getScreenWidth, isKeyDown, isKeyUp, KeyboardKey, loadText, matTranslate, popMatrix, pushMatrix, RAYWHITE, Rectangle, RED, Texture, TRANSPARENT, WHITE, YELLOW } from "../context";
+import { addImage, addText, beginDrawing, beginFramebuffer, BLACK, blit, blitRect, blitRectRect, BLUE, calcTextDimensions, clearBackground, createFrameBuffer, drawFPS, drawLine, drawRect, drawText, endDrawing, endFramebuffer, Framebuffer, getScreenHeight, getScreenWidth, isKeyDown, isKeyUp, KeyboardKey, loadText, matTranslate, popMatrix, pushMatrix, rand, RAYWHITE, Rectangle, RED, Texture, TRANSPARENT, WHITE, YELLOW } from "../context";
 import Device from "../device/Device";
 import { Compiler, Story } from "inkjs/compiler/Compiler";
+import createIslandMap from "../island/createIslandMap";
+import { BiomeColor } from "../island/biomes";
+import IslandMap from "../island/IslandMap";
 
 export default class Game {
     private readonly keyboard = new Set<KeyboardKey>();
     private readonly messages: string[] = [];
     private readonly choices: string[] = [];
+    private readonly map = createIslandMap();
     private selection: number = 0;
     private story: Story = null!
     async load(device: Device) {
@@ -17,14 +21,25 @@ export default class Game {
         await addText("glsl/text.frag.sk", device);
         await addText("glsl/sprite.vert.sk", device);
         await addText("glsl/sprite.frag.sk", device);
-        await addText("story/demo.txt", device);
         await addImage("font/NotoSansSC-Regular", device);
     }
     init() {
-        const content = loadText("story/demo.txt");
-        console.log(new Set(content));
+        const map = this.map;
+        const coast = map.r_coast.indexOf(true);
+        this.updateStory(coast);
+    }
+    private updateStory(currentRegion: number) {
+        const map = this.map;
+        const neighbors = map.mesh.r_circulate_r([], currentRegion).map((r, i) => `* [You can go to ${i}: ${BiomeColor[map.r_biome[r]]} #region ${r}]Arriving ${BiomeColor[map.r_biome[r]]}`);
+        const randomEvents = new Array(rand() % 3).fill(0).map((_, i) => `* Random Event ${i}`);
+        const content = [
+            `You are now at ${BiomeColor[map.r_biome[currentRegion]]}`,
+            ...randomEvents,
+            ...neighbors
+        ].join("\n");
         this.story = new Compiler(content).Compile();
     }
+
     prepareScene() {
         beginDrawing();
         clearBackground(RAYWHITE);
@@ -86,7 +101,17 @@ export default class Game {
         }
         if (this.keyboard.has(KeyboardKey.KEY_RIGHT)) {
             if (this.choices.length !== 0) {
-                this.story.ChooseChoiceIndex(this.selection);
+                const tags = this.story.currentChoices[this.selection].tags;
+                if (tags && tags.length === 1) {
+                    const [type, r] = tags[0].split(" ") as [string, number];
+                    if (type === "region") {
+                        this.updateStory(r);
+                    } else {
+                        throw new Error(`Unknown tag type: ${type}`);
+                    }
+                } else {
+                    this.story.ChooseChoiceIndex(this.selection);
+                }
                 this.selection = 0;
                 this.choices.length = 0;
                 this.keyboard.delete(KeyboardKey.KEY_RIGHT);

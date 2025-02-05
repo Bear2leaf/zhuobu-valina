@@ -40,8 +40,8 @@ class IslandMap {
     private readonly t_downslope_s: number[];
     private readonly r_waterdistance: number[];
     private readonly r_moisture: number[];
-    private readonly r_coast: boolean[];
     private readonly r_temperature: number[];
+    readonly r_coast: boolean[];
     readonly r_water: boolean[];
     readonly s_lines: number[][][];
     readonly s_flow: number[];
@@ -114,7 +114,7 @@ class IslandMap {
         const spring_t = find_spring_t(this.mesh, this.r_water, this.t_elevation, this.t_downslope_s);
         this.spring_t.splice(0, this.spring_t.length, ...spring_t);
         randomShuffle(this.spring_t, this.makeRandInt(options.riverSeed));
-        
+
         const river_t = this.spring_t.slice(0, options.numRivers);
         this.river_t.splice(0, this.river_t.length, ...river_t);
         assign_s_flow(this.s_flow, this.mesh, this.t_downslope_s, this.river_t);

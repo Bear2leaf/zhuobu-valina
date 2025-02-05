@@ -15,6 +15,6 @@ const config = {
 
 const ctx = await esbuild.context(config)
 ctx.serve({
-  servedir: '.',
+  servedir: '.'
 })
 await ctx.watch();

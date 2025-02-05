@@ -1,8 +1,11 @@
 import 'minigame-api-typings';
 import Device from "./Device";
+import { vec2 } from 'gl-matrix';
+import { KeyboardKey } from '../context';
 
 
 export default class MinigameDevice implements Device {
+    private worker?: WechatMinigame.Worker;
     private readonly windowInfo: WechatMinigame.WindowInfo;
     private readonly canvasGL: HTMLCanvasElement
     private readonly audioContext: WechatMinigame.WebAudioContext = wx.createWebAudioContext();
@@ -16,24 +19,44 @@ export default class MinigameDevice implements Device {
         this.windowInfo = wx.getWindowInfo()
         const isDevTool = wx.getDeviceInfo().platform === "devtools";
         this.divideTimeBy = isDevTool ? 1 : 1000;
+        let dx = 0;
+        let dy = 0;
+        let x = 0;
+        let y = 0;
         wx.onTouchStart((e) => {
-            if (e.touches.length === 1) this.onKeyDown(67);
-            if (e.touches.length === 2) this.onKeyDown(75);
-            this.onMouseMove(e.touches[0].clientX, e.touches[0].clientY);
-            this.onMouseDown(0);
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+            this.onKeyUp(KeyboardKey.KEY_LEFT);
+            this.onKeyUp(KeyboardKey.KEY_RIGHT);
+            this.onKeyUp(KeyboardKey.KEY_UP);
+            this.onKeyUp(KeyboardKey.KEY_DOWN);
         });
         wx.onTouchMove((e) => {
-            this.onMouseMove(e.touches[0].clientX, e.touches[0].clientY);
+            dx = e.touches[0].clientX - x;
+            dy = e.touches[0].clientY - y;
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
         });
         wx.onTouchEnd((e) => {
-            this.onKeyUp(67);
-            this.onKeyUp(75);
-            this.onMouseUp(0);
-            this.onMouseUp(2);
-            this.onMouseUp(1);
-        });
-        wx.onWheel((e) => {
-            this.onMouseWheel(e.deltaY);
+            if (vec2.length([dx, dy]) > 10) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) {
+                        this.onKeyDown(KeyboardKey.KEY_RIGHT);
+                    } else {
+                        this.onKeyDown(KeyboardKey.KEY_LEFT);
+                    }
+                } else {
+                    if (dy > 0) {
+                        this.onKeyDown(KeyboardKey.KEY_DOWN);
+                    } else {
+                        this.onKeyDown(KeyboardKey.KEY_UP);
+                    }
+                }
+                this.onInput()
+            }
+            dx = 0;
+            dy = 0;
+
         });
     }
     getWindowInfo(): WechatMinigame.WindowInfo {
@@ -66,26 +89,32 @@ export default class MinigameDevice implements Device {
             })
         });
     }
+    sendmessage(message: MainMessage): void {
+        if (this.worker) {
+            this.worker.postMessage(message);
+        }
+    }
+    onmessage(message: WorkerMessage): void {
+        console.log(message);
+    }
+    createWorker(url: string): void {
+        this.worker = wx.createWorker(url, { useExperimentalWorker: true });
+        this.worker.onMessage((message) => {
+            this.onmessage(message as unknown as WorkerMessage);
+        });
+        this.worker.onProcessKilled(() => {
+            console.log("worker killed");
+        });
+    }
     createWebAudioContext(): AudioContext {
         return this.audioContext;
     }
+    onInput(): void {
+        
+    }
     onKeyUp = (key: number) => {
-        throw new Error("Method not implemented.");
     }
     onKeyDown = (key: number) => {
-        throw new Error("Method not implemented.");
-    }
-    onMouseMove(x: number, y: number): void {
-        throw new Error("Method not implemented.");
-    }
-    onMouseDown(button: number): void {
-        throw new Error("Method not implemented.");
-    }
-    onMouseUp(button: number): void {
-        throw new Error("Method not implemented.");
-    }
-    onMouseWheel(delta: number): void {
-        throw new Error("Method not implemented.");
     }
     loadText(url: string): Promise<string> {
         return Promise.resolve(wx.getFileSystemManager().readFileSync(url, "utf8") as string);

@@ -4,7 +4,7 @@ import * as esbuild from 'esbuild';
  * @type {esbuild.BuildOptions}
  */
 const config = {
-  entryPoints: ['src/main.ts'],
+  entryPoints: ['src/main.ts', "src/worker/main.ts"],
   bundle: true,
   outdir: 'dist',
   target: 'es2015',

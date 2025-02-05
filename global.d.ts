@@ -1,6 +1,23 @@
 declare module "polyline-normals" {
     export default function getNormals(points: number[][]): [[number, number], number][];
 }
+type MainMessage = {
+    type: "ping"
+} 
+
+type WorkerMessage = {
+    type: "pong"
+} 
+type WorkerOptions = {
+    type: "module"
+}
+declare class Worker {
+    constructor(url: string, options?: WorkerOptions);
+    postMessage(message: MainMessage): void;
+    onmessage: (message: {data: WorkerMessage}) => void;
+    onerror: (error: Error) => void;
+    terminate(): void;
+}
 declare class HTMLCanvasElement {
     id: string;
     width: number;

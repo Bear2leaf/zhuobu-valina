@@ -1,4 +1,6 @@
+import { vec2 } from "gl-matrix";
 import Device from "./Device";
+import { KeyboardKey } from "../context";
 function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
     const info = {
         windowWidth: window.innerWidth,
@@ -22,6 +24,7 @@ function getWindowInfo(canvas: HTMLCanvasElement): WechatMinigame.WindowInfo {
     return info;
 }
 export default class BrowserDevice implements Device {
+    private worker?: Worker;
     private readonly windowInfo: WechatMinigame.WindowInfo;
     private readonly canvasGL: HTMLCanvasElement
     private readonly audioContext: AudioContext = new AudioContext();
@@ -29,39 +32,72 @@ export default class BrowserDevice implements Device {
         this.canvasGL = document.createElement("canvas");
         document.body.appendChild(this.canvasGL);
         this.windowInfo = getWindowInfo(this.canvasGL);
-        window.addEventListener("keydown", (e) => this.onKeyDown(e.keyCode));
-        window.addEventListener("keyup", (e) => this.onKeyUp(e.keyCode));
+        window.addEventListener("keydown", (e) => {
+            this.onKeyDown(e.keyCode)
+            this.onInput();
+        });
+        window.addEventListener("keyup", (e) => {
+            this.onKeyUp(e.keyCode)
+            this.onInput();
+        });
         window.addEventListener("resize", () => {
             Object.assign(this.windowInfo, getWindowInfo(this.canvasGL));
             this.onResize()
         });
-        window.addEventListener("mousemove", (e) => this.onMouseMove(e.clientX, e.clientY));
-        window.addEventListener("mousedown", (e) => this.onMouseDown(e.button));
-        window.addEventListener("mouseup", (e) => this.onMouseUp(e.button));
+        let dx = 0;
+        let dy = 0;
+        let x = 0;
+        let y = 0;
+        window.addEventListener("touchmove", (e) => {
+            dx = e.touches[0].clientX - x;
+            dy = e.touches[0].clientY - y;
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+
+
+        });
+        window.addEventListener("touchstart", (e) => {
+            x = e.touches[0].clientX;
+            y = e.touches[0].clientY;
+            this.onKeyUp(KeyboardKey.KEY_LEFT);
+            this.onKeyUp(KeyboardKey.KEY_RIGHT);
+            this.onKeyUp(KeyboardKey.KEY_UP);
+            this.onKeyUp(KeyboardKey.KEY_DOWN);
+        });
+        window.addEventListener("touchend", (e) => {
+            if (vec2.length([dx, dy]) > 10) {
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0) {
+                        this.onKeyDown(KeyboardKey.KEY_RIGHT);
+                    } else {
+                        this.onKeyDown(KeyboardKey.KEY_LEFT);
+                    }
+                } else {
+                    if (dy > 0) {
+                        this.onKeyDown(KeyboardKey.KEY_DOWN);
+                    } else {
+                        this.onKeyDown(KeyboardKey.KEY_UP);
+                    }
+                }
+                this.onInput()
+            }
+            dx = 0;
+            dy = 0;
+        });
         window.addEventListener("contextmenu", (e) => e.preventDefault());
-        window.addEventListener("wheel", (e) => this.onMouseWheel(e.deltaY));
 
     }
-    onMouseWheel(delta: number): void {
-        
+    onInput(): void {
+
     }
     onResize: () => void = () => {
-        
+
     };
     onKeyUp = (key: number) => {
-        
+
     }
     onKeyDown = (key: number) => {
-        
-    }
-    onMouseMove(x: number, y: number): void {
-        
-    }
-    onMouseDown(button: number): void {
-        
-    }
-    onMouseUp(button: number): void {
-        
+
     }
     getCanvasGL(): HTMLCanvasElement {
         return this.canvasGL;
@@ -74,6 +110,23 @@ export default class BrowserDevice implements Device {
     }
     async loadSubpackage() {
         return null;
+    }
+    sendmessage(message: MainMessage): void {
+        if (this.worker) {
+            this.worker.postMessage(message);
+        }
+    }
+    onmessage(message: WorkerMessage): void {
+        console.log(message);
+    }
+    createWorker(url: string): void {
+        this.worker = new Worker(url, { type: "module" });
+        this.worker.onerror = (e) => {
+            throw new Error("worker error");
+        };
+        this.worker.onmessage = (e) => {
+            this.onmessage(e.data);
+        };
     }
     createWebAudioContext(): AudioContext {
         return this.audioContext;
@@ -108,11 +161,10 @@ declare const window: {
     addEventListener(type: "keydown", listener: (e: { keyCode: number }) => void): void;
     addEventListener(type: "keyup", listener: (e: { keyCode: number }) => void): void;
     addEventListener(type: "resize", listener: () => void): void;
-    addEventListener(type: "mousemove", listener: (e: { clientX: number, clientY: number }) => void): void;
-    addEventListener(type: "mousedown", listener: (e: { button: number }) => void): void;
-    addEventListener(type: "mouseup", listener: (e: { button: number }) => void): void;
     addEventListener(type: "contextmenu", listener: (e: { preventDefault(): void }) => void): void;
-    addEventListener(type: "wheel", listener: (e: { deltaY: number }) => void): void;
+    addEventListener(type: "touchstart", listener: (e: { touches: { clientX: number, clientY: number }[] }) => void): void;
+    addEventListener(type: "touchmove", listener: (e: { touches: { clientX: number, clientY: number }[] }) => void): void;
+    addEventListener(type: "touchend", listener: (e: { touches: { clientX: number, clientY: number }[] }) => void): void;
 }
 declare const performance: {
     now: () => number;

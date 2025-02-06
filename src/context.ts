@@ -300,7 +300,7 @@ export function endFramebuffer() {
     fboHeight = 0;
 }
 export function beginDrawing() {
-    const { device, gl, keyboard } = context;
+    const { device, gl } = context;
     const now = device.now();
     context.frameTime = (now - context.time) / 1000;
     context.fps = Math.floor(1 / context.frameTime);
@@ -309,7 +309,6 @@ export function beginDrawing() {
     linePositions.fill(0);
     lineColors.fill(0);
     lineIndices.fill(0);
-    keyboard.clear();
     mat4.identity(matStack[0]);
 }
 export function endDrawing() {

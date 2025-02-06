@@ -7,7 +7,7 @@ import getNormals from "polyline-normals"
 const _attributeLocs: WeakMap<WebGLProgram, Record<string, number>> = new WeakMap();
 const _uniformLocs: WeakMap<WebGLProgram, Record<string, WebGLUniformLocation>> = new WeakMap();
 const _mtsdfTexts: Record<string, MTSDFText> = {};
-type TextAlign = "left" | "center" | "right";
+export type TextAlign = "left" | "center" | "right";
 function cacheMTSDFText(content: string, fontData: MTSDFFontData, size: number, align: TextAlign, width: number): MTSDFText {
     const key = `${content}_${size}_${align}_${width}`;
     if (_mtsdfTexts[key] === undefined) {
@@ -359,16 +359,38 @@ export function clearBackground(color: vec4) {
     gl.clear(gl.COLOR_BUFFER_BIT | gl.STENCIL_BUFFER_BIT);
 }
 export function drawFPS(x: number, y: number) {
-    drawText(`FPS: ${context.fps}`, x, y, 20, BLUE);
+    drawText(`FPS: ${context.fps}`, x, y, { color: BLUE });
 }
-export function calcTextDimensions(content: string, size: number, align: TextAlign, width: number, dimensions: vec2) {
+export function calcTextDimensions(content: string, size = defaultFontSize, align: TextAlign = "left", width = Infinity) {
     const { fontData, } = context;
     let mtsdfText = cacheMTSDFText(content, fontData, size, align, width);
     mtsdfText.update({ text: content });
-    dimensions[0] = mtsdfText.width;
-    dimensions[1] = mtsdfText.height;
+    return [mtsdfText.width, mtsdfText.height];
 }
-export function drawText(content: string, x: number, y: number, size: number, color: vec4, align: TextAlign = "left", width: number = Infinity) {
+const defaultFontSize = 20;
+const defaultTextBorder = 10;
+export function drawTextBoxed(content: string, x: number, y: number) {
+    const size = defaultFontSize;
+    const border = defaultTextBorder;
+    const width = getScreenWidth() - border * 2;
+    const [w, h] = calcTextDimensions(content, size, "left", width);
+    drawRect(x, y, w, h, YELLOW, border, BLACK);
+    drawText(content, x + border, y + border, { size, width });
+}
+export function drawTypeWriter(content: string, x: number, y: number, i: number) {
+    const size = defaultFontSize;
+    const right = getScreenWidth();
+    const text = content.substring(0, i) + (i < content.length ? "_" : "");
+    drawText(text, x, y, { size, width: right });
+
+}
+export type TextOptions = {
+    size?: number;
+    color?: vec4;
+    align?: TextAlign;
+    width?: number;
+}
+export function drawText(content: string, x: number, y: number, { size = defaultFontSize, color = BLACK, align = "left", width = Infinity }: TextOptions = {}) {
     const { gl, fontData, textDrawobject, device } = context;
     const { vao, vboPosition: vbo, vboTexcoord: vbo1, ebo, textures, program } = textDrawobject;
     let mtsdfText = cacheMTSDFText(content, fontData, size, align, width);
@@ -514,7 +536,7 @@ export function drawRect(x: number, y: number, width: number, height: number, co
         x + width + border * 2, y, 0,
         x + width + border * 2, y + height + border * 2, 0,
         x, y + height + border * 2, 0,
-        
+
         // content
         x + border, y + border, 0,
         x + width + border, y + border, 0,

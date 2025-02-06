@@ -10,18 +10,11 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/delaunator": "^5.0.3",
-    "@types/poisson-disk-sampling": "^2.2.4",
     "esbuild": "^0.21.5",
     "minigame-api-typings": "^3.8.4"
   },
   "dependencies": {
-    "alea": "^1.0.1",
-    "delaunator": "^5.0.1",
     "gl-matrix": "^3.4.3",
-    "inkjs": "^2.3.1",
-    "poisson-disk-sampling": "^2.3.1",
-    "polyline-normals": "^2.0.2",
-    "simplex-noise": "^4.0.3"
+    "polyline-normals": "^2.0.2"
   }
 }

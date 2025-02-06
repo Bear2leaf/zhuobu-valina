@@ -59,6 +59,7 @@ const context = {
     time: 0,
     fps: 0,
     frameTime: 0,
+    mouse: { x: 0, y: 0, left: false, right: false, middle: false, wheel: 0 },
     keyboard: new Set<number>(),
     textDrawobject: null! as Drawobject,
     spriteDrawobject: null! as Drawobject,
@@ -237,6 +238,43 @@ export function initDrawobjects() {
 export function initContext(device: Device) {
     device.onKeyDown = (key) => context.keyboard.add(key);
     device.onKeyUp = (key) => context.keyboard.delete(key);
+    device.onMouseMove = (x, y) => {
+        context.mouse.x = x;
+        context.mouse.y = y;
+    }
+    device.onMouseDown = (button) => {
+        switch (button) {
+            case 0:
+                context.mouse.left = true;
+                break;
+            case 1:
+                context.mouse.middle = true;
+                break;
+            case 2:
+                context.mouse.right = true;
+                break;
+        }
+    }
+    device.onMouseUp = (button) => {
+        switch (button) {
+            case 0:
+                context.mouse.left = false;
+                break;
+            case 1:
+                context.mouse.middle = false;
+                break;
+            case 2:
+                context.mouse.right = false;
+                break;
+        }
+    }
+    device.onMouseMove = (x, y) => {
+        context.mouse.x = x;
+        context.mouse.y = y;
+    }
+    device.onMouseWheel = (delta) => {
+        context.mouse.wheel += delta;
+    }
     context.device = device;
     context.gl = device.getCanvasGL().getContext('webgl2', {}) as WebGL2RenderingContext;
     const image = images.get(`font/NotoSansSC-Regular`);
@@ -309,9 +347,9 @@ export function beginDrawing() {
     linePositions.fill(0);
     lineColors.fill(0);
     lineIndices.fill(0);
-    mat4.identity(matStack[0]);
 }
 export function endDrawing() {
+    context.mouse.wheel = 0;
     flushLines();
 }
 
@@ -674,6 +712,16 @@ export function loadSound(name: string) {
     const synth = context.synth;
     const [instrument, note] = name.split("#");
     audioBuffers.set(name, synth.sound(instrument.split(",").map(o => parseInt(o ? o : "0"), 10), note ? parseInt(note) : undefined));
+}
+export function getMouse() {
+    return {
+        x: context.mouse.x,
+        y: context.mouse.y,
+        left: context.mouse.left,
+        right: context.mouse.right,
+        middle: context.mouse.middle,
+        wheel: context.mouse.wheel,
+    }
 }
 export function playMusic(name: string) {
     const { audio } = context;

@@ -1,9 +1,8 @@
 {
-  "subpackages": [
-    {
-      "name": "resources",
-      "root": "resources"
-    }
-  ],
-  "workers": "dist/worker"
+    "subpackages": [
+      {
+        "name": "resources",
+        "root": "resources"
+      }
+    ]
 }

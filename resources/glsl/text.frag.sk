@@ -59,7 +59,7 @@ void main() {
     float inner_opacity = clamp(inner, 0.0f, 1.0f);
     vec4 inner_color = u_color;
     float outer_opacity = clamp(outer, 0.0f, 1.0f);
-    vec4 outer_color = vec4(u_color.r, u_color.g, 1.0f - u_color.b, 1);
+    vec4 outer_color = vec4(0, 0, 0, 1);
 
     if(u_outline_blur > 0.0f) {
     // NOTE: the smoothstep fails when the two edges are the same, and I wish it

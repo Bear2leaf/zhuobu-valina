@@ -1,8 +1,5 @@
 
 export default interface Device {
-  sendmessage: (message: MainMessage) => void;
-  onmessage: (message: WorkerMessage) => void;
-  createWorker(url: string): void;
   getCanvasGL(): HTMLCanvasElement;
   getWindowInfo(): WechatMinigame.WindowInfo;
   now(): number;
@@ -10,8 +7,11 @@ export default interface Device {
   createWebAudioContext(): AudioContext;
   onKeyUp(key: number): void;
   onKeyDown(key: number): void;
+  onMouseMove(x: number, y: number): void;
+  onMouseDown(button: number): void;
+  onMouseUp(button: number): void;
   loadText(url: string): Promise<string>;
   loadImage(url: string): Promise<HTMLImageElement>;
   loadBuffer(url: string): Promise<ArrayBuffer>;
-  onInput(): void;
+  onMouseWheel(delta: number): void;
 }

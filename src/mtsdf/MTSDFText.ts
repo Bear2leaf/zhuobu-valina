@@ -99,10 +99,7 @@ export class MTSDFText {
             let chars = text;
             let numChars = chars.length;
             if (numChars > buffers.position.length / 3 / 4) {
-                buffers.position = new Float32Array(numChars * 4 * 3);
-                buffers.uv = new Float32Array(numChars * 4 * 2);
-                buffers.id = new Float32Array(numChars * 4);
-                buffers.index = new Uint16Array(numChars * 6);
+                throw new Error('Text too long');
             }
             Object.keys(buffers).forEach((key) => {
                 buffers[key as keyof Buffers].fill(0);

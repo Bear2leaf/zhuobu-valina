@@ -1,4 +1,4 @@
-import Game from "./engine/Game.js";
+import Game from "./text/Game.js";
 import { addAudioBuffer, addImage, addText, initContext, initDrawobjects, initPrograms, initWindow } from "./context.js";
 import Device from "./device/Device.js";
 export async function mainH5() {
@@ -20,20 +20,15 @@ export async function mainMinigame() {
 }
 export async function start(device: Device) {
     const game = new Game();
-    device.onmessage = (message) => {
-        console.log("Message From Worker", message);
-    }
-    device.createWorker("dist/worker/main.js");
-    device.sendmessage({ type: "ping" });
     await game.load(device);
     initContext(device);
     initPrograms();
     initDrawobjects();
     initWindow(0, 0, "");
     game.init();
-    device.onInput = () => game.doInput();
     function loop() {
         game.prepareScene();
+        game.doInput();
         game.logic();
         game.draw();
         game.presentScene();

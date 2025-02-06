@@ -21,9 +21,7 @@ export default class Game {
         await addImage("font/NotoSansSC-Regular", device);
     }
     init() {
-        const content = loadText("story/demo.txt");
-        console.log(new Set(content));
-        this.story = new Compiler(content).Compile();
+        this.story = new Compiler(loadText("story/demo.txt")).Compile();
     }
     prepareScene() {
         beginDrawing();
@@ -62,8 +60,8 @@ export default class Game {
                 throw new Error("message is null");
             }
             this.messages.push(message);
-        } else if (this.story.currentChoices.length > 0 && this.choices.length === 0) {
-
+        } else if (this.story.currentChoices.length > 0) {
+            this.choices.length = 0;
             for (let i = 0; i < this.story.currentChoices.length; i++) {
                 this.choices.push(this.story.currentChoices[i].text);
             }
@@ -88,32 +86,33 @@ export default class Game {
             if (this.choices.length !== 0) {
                 this.story.ChooseChoiceIndex(this.selection);
                 this.selection = 0;
+                this.messages.length = 0;
                 this.choices.length = 0;
                 this.keyboard.delete(KeyboardKey.KEY_RIGHT);
             }
         }
         if (this.keyboard.has(KeyboardKey.KEY_LEFT)) {
+            //reset
             this.story.ResetState();
-            this.selection = 0;
-            this.choices.length = 0;
             this.messages.length = 0;
+            this.choices.length = 0;
             this.keyboard.delete(KeyboardKey.KEY_LEFT);
+
         }
     }
     draw() {
         pushMatrix();
-        matTranslate(0, getScreenHeight() / 2, 0);
+        matTranslate(0, 100, 0);
         for (let i = 0; i < this.messages.length; i++) {
-            const msg = this.messages[this.messages.length - i - 1];
-            if (msg) {
-                calcTextDimensions(msg, 20, "left", getScreenWidth(), dims)
-                drawText(msg, 0, -dims[1], 20, BLACK, "left", getScreenWidth());
-                matTranslate(0, -dims[1], 0);
+            if (this.messages[i]) {
+                calcTextDimensions(this.messages[i], 20, "left", getScreenWidth(), dims)
+                drawText(this.messages[i], 0, 0, 20, BLACK, "left", getScreenWidth());
+                matTranslate(0, dims[1], 0);
             }
         }
         popMatrix();
         pushMatrix();
-        matTranslate(0, getScreenHeight() / 2, 0);
+        matTranslate(0, 300, 0);
         for (let i = 0; i < this.choices.length; i++) {
             calcTextDimensions(this.choices[i], 20, "left", getScreenWidth(), dims)
             drawText(this.choices[i], 0, 0, 20, this.selection === i ? RED : BLACK, "left", getScreenWidth());
@@ -121,7 +120,7 @@ export default class Game {
         }
         popMatrix();
 
-        drawFPS(getScreenWidth() - 80, getScreenHeight() - 40);
+        drawFPS(10, 10);
     }
 
 
